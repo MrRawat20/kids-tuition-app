@@ -1,0 +1,1921 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#FF6A00">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Kids Tuition Classes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Chewy&display=swap">
+<style>
+/* Kids Tuition Classes look, taken from the banner: bright orange ground, teal and yellow ribbons,
+   black outlines with a hard offset shadow (sticker feel), dotted grids and round corner circles.
+   Chewy for titles and figures (like the banner lettering), Baloo 2 for everything else (rounded, has the rupee sign and Hindi letters).
+   Layout: one narrow column (max 640px) under a sticky orange bar and a fixed five-tab bottom bar; details and forms open as bottom sheets. */
+:root{
+  --bg:#FFF4E6;--dot:rgba(255,106,0,.15);--surface:#FFFFFF;--surface2:#FFE8CC;--ink:#1E1611;--muted:#6B5645;--line:#EBD6BC;--edge:#2A1D12;
+  --orange:#FF6A00;--on-orange:#1E1611;--teal:#07979A;--yellow:#F9C800;--on-yellow:#1E1611;
+  --accent:#056E70;--on-accent:#FFFFFF;--accent-soft:#D7F1F1;
+  --ok:#0E7A45;--ok-soft:#DDF3E8;--warn:#8F4200;--warn-soft:#FFE3BF;--bad:#B3261E;--bad-soft:#FDE0DC;--on-bad:#FFFFFF;
+  --f-display:'Chewy','Baloo 2',system-ui,sans-serif;
+  --f-body:'Baloo 2','Mukta','Noto Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --r:16px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#1B120B;--dot:rgba(255,140,60,.09);--surface:#2A1C12;--surface2:#3A2818;--ink:#FFF1E0;--muted:#D2BBA1;--line:#4A3522;--edge:#7A5638;
+    --orange:#A63F00;--on-orange:#FFFFFF;--teal:#0B8F92;
+    --accent:#46D3D5;--on-accent:#0B1F20;--accent-soft:#123B3C;
+    --ok:#62D69C;--ok-soft:#10301F;--warn:#F3B35F;--warn-soft:#3D2A0E;--bad:#FF9A92;--bad-soft:#411B18;--on-bad:#2A0A0A;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1B120B;--dot:rgba(255,140,60,.09);--surface:#2A1C12;--surface2:#3A2818;--ink:#FFF1E0;--muted:#D2BBA1;--line:#4A3522;--edge:#7A5638;
+  --orange:#A63F00;--on-orange:#FFFFFF;--teal:#0B8F92;
+  --accent:#46D3D5;--on-accent:#0B1F20;--accent-soft:#123B3C;
+  --ok:#62D69C;--ok-soft:#10301F;--warn:#F3B35F;--warn-soft:#3D2A0E;--bad:#FF9A92;--bad-soft:#411B18;--on-bad:#2A0A0A;
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);background-image:radial-gradient(var(--dot) 2px,transparent 2.6px);background-size:28px 28px;background-attachment:fixed;color:var(--ink);font:16px/1.4 var(--f-body);-webkit-text-size-adjust:100%;overflow-wrap:break-word}
+body.lock{overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+h1,h2,h3{margin:0;font-family:var(--f-display);font-weight:400;line-height:1.15;text-wrap:balance}
+p{margin:0}
+img{display:block}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{width:100%;max-width:640px;margin-inline:auto;padding-inline:16px}
+
+/* orange title bar with the banner's corner circles */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--orange);color:var(--on-orange);border-bottom:3px solid var(--edge);overflow:hidden}
+.top::before{content:"";position:absolute;right:-30px;top:-38px;width:104px;height:104px;border-radius:50%;background:var(--teal)}
+.top::after{content:"";position:absolute;right:34px;top:-30px;width:56px;height:56px;border-radius:50%;background:var(--yellow)}
+.top :focus-visible{outline-color:var(--on-orange)}
+.top-in{position:relative;z-index:1;display:flex;align-items:center;gap:10px;min-height:76px;padding-block:8px}
+.top-t{flex:1;min-width:0}
+.top h1{font-size:22px;line-height:1.1;margin-top:2px}
+.top h1 span{display:inline-block;max-width:100%;vertical-align:top;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:3px 20px 5px 14px;background:var(--teal);color:#fff;clip-path:polygon(0 0,100% 0,calc(100% - 9px) 100%,0 100%)}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.icon-btn{flex:none;display:grid;place-items:center;width:46px;height:46px;border:0;border-radius:50%;background:transparent;color:var(--ink)}
+.icon-btn:active{background:var(--surface2)}
+.icon-btn:disabled{opacity:.3;cursor:default}
+.top .icon-btn{background:var(--surface);border:2px solid var(--edge);color:var(--ink);width:44px;height:44px}
+#view{padding-block:16px 170px;min-height:60vh}
+
+/* bottom tabs */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:3px solid var(--edge);padding-bottom:env(safe-area-inset-bottom,0px)}
+.nav-in{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));max-width:640px;margin-inline:auto}
+.nav button{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:64px;padding:7px 2px;border:0;background:none;color:var(--muted);font-size:12.5px;font-weight:700}
+.nav button[aria-current]{color:var(--ink)}
+.ic-wrap{display:grid;place-items:center;width:56px;height:30px;border-radius:15px;border:2px solid transparent}
+.nav button[aria-current] .ic-wrap{background:var(--yellow);color:var(--on-yellow);border-color:var(--edge)}
+.fab{position:fixed;right:max(16px,calc((100vw - 640px)/2 + 16px));bottom:calc(82px + env(safe-area-inset-bottom,0px));z-index:25;display:flex;align-items:center;gap:8px;min-height:58px;padding:0 24px 0 18px;border:2px solid var(--edge);border-radius:30px;background:var(--yellow);color:var(--on-yellow);font-weight:700;font-size:17px;box-shadow:0 4px 0 var(--edge)}
+.fab:active{transform:translateY(2px);box-shadow:0 2px 0 var(--edge)}
+
+/* loading, banner, tagline */
+.loading{display:grid;justify-items:center;gap:14px;padding:50px 0;color:var(--muted);font-weight:700}
+.spin{width:30px;height:30px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--accent);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.wordmark{display:grid;justify-items:center;gap:6px;margin:0 auto 18px;font-family:var(--f-display);line-height:1}
+.wordmark span{display:inline-block;padding:6px 26px 9px;clip-path:polygon(0 0,100% 0,calc(100% - 12px) 100%,0 100%)}
+.wm-a{background:var(--teal);color:#fff;font-size:44px}
+.wm-b{background:var(--yellow);color:var(--on-yellow);font-size:32px}
+.wordmark.sm{margin:0}.wordmark.sm .wm-a{font-size:34px}.wordmark.sm .wm-b{font-size:24px}
+.tag{margin:0 0 16px;padding:9px 22px 11px;background:var(--yellow);color:var(--on-yellow);border:0;font-family:var(--f-display);font-size:19px;line-height:1.2;text-align:center;clip-path:polygon(2.5% 0,100% 0,97.5% 100%,0 100%)}
+.rc-img{width:100%;height:auto;aspect-ratio:148/210;margin-bottom:16px;border:2px solid var(--edge);border-radius:8px;background:#fff;box-shadow:0 4px 0 var(--edge)}
+.rc-wait{display:grid;justify-items:center;gap:12px;padding:60px 0;color:var(--muted);font-weight:700}
+
+/* figures */
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.tiles.three{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.tile{background:var(--surface);border:2px solid var(--edge);border-radius:var(--r);box-shadow:0 3px 0 var(--edge);padding:11px 13px;min-width:0}
+.tl{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.tv{font-family:var(--f-display);font-weight:400;font-size:29px;line-height:1.2;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.three .tv{font-size:21px}
+.three .tl{font-size:11px;letter-spacing:.03em}
+.t-ok{color:var(--ok)}.t-warn{color:var(--warn)}.t-bad{color:var(--bad)}
+.ts{font-size:13px;color:var(--muted);line-height:1.3}
+.prog{margin:14px 0 4px;background:var(--surface);border:2px solid var(--edge);border-radius:var(--r);box-shadow:0 3px 0 var(--edge);padding:12px 14px}
+.prog-t{display:flex;justify-content:space-between;font-weight:700;margin-bottom:8px}
+.bar{height:12px;background:var(--surface2);border:1.5px solid var(--edge);border-radius:6px;overflow:hidden}
+.bar.sm{height:9px;margin:8px 0}
+.bar>i{display:block;height:100%;background:var(--ok)}
+.c-ok{color:var(--ok)}.c-bad{color:var(--bad)}
+
+/* groups and lists */
+.grp{display:flex;align-items:center;gap:8px;font-size:21px;margin:26px 0 9px}
+.cnt{font-family:var(--f-body);font-size:13px;font-weight:700;background:var(--yellow);color:var(--on-yellow);border:1.5px solid var(--edge);padding:0 9px;border-radius:10px}
+.grp-amt{margin-left:auto;font-family:var(--f-body);font-size:15px;font-weight:700;color:var(--muted)}
+.dot{flex:none;width:13px;height:13px;border-radius:50%;background:currentColor;border:2px solid var(--edge)}
+.dot.bad{color:var(--bad)}.dot.warn{color:var(--warn)}.dot.ok{color:var(--ok)}
+.sec{font-size:21px;margin:30px 0 10px}
+.sec.first{margin-top:4px}
+.sub-h{font-size:18px;margin:20px 0 8px}
+.none{padding:14px 16px;border:2px dashed var(--line);border-radius:var(--r);color:var(--muted);font-weight:700}
+.none.big{text-align:center;padding:36px 16px}
+.list{background:var(--surface);border:2px solid var(--edge);border-radius:var(--r);box-shadow:0 3px 0 var(--edge);overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;min-height:66px;padding:11px 14px;border-top:1.5px solid var(--line);cursor:pointer}
+.row:first-child{border-top:0}
+.row:active{background:var(--surface2)}
+.row:focus-visible{outline-offset:-3px}
+.row.dim{opacity:.6}
+.row-main{flex:1;min-width:0}
+.row-title{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-weight:700;overflow-wrap:anywhere}
+.row-sub{font-size:14px;color:var(--muted);overflow-wrap:anywhere;line-height:1.3}
+.row-end{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex:none;max-width:48%}
+.row-note{font-size:12px;color:var(--muted);white-space:nowrap}
+.amt{font-family:var(--f-display);font-weight:400;font-size:19px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:1px 10px;border-radius:999px;font-size:13px;font-weight:700;white-space:nowrap}
+.badge i{width:8px;height:8px;border-radius:50%;background:currentColor}
+.badge.ok{background:var(--ok-soft);color:var(--ok)}
+.badge.warn{background:var(--warn-soft);color:var(--warn)}
+.badge.bad{background:var(--bad-soft);color:var(--bad)}
+.badge.idle{background:var(--surface2);color:var(--muted)}
+.pill{display:inline-block;padding:0 8px;border-radius:6px;background:var(--surface2);color:var(--muted);font-size:12px;font-weight:700;line-height:20px;white-space:nowrap}
+.pill.time{background:var(--accent-soft);color:var(--accent)}
+
+/* buttons */
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:54px;padding:0 20px;border:2px solid var(--edge);border-radius:16px;box-shadow:0 3px 0 var(--edge);font-size:17px;font-weight:700;text-decoration:none;text-align:center;line-height:1.15}
+.btn:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 var(--edge)}
+.btn-primary{background:var(--yellow);color:var(--on-yellow)}
+.btn-ghost{background:var(--surface);color:var(--accent)}
+.btn-wa{background:var(--accent);color:var(--on-accent)}
+.btn-danger{background:var(--bad);color:var(--on-bad)}
+.btn-danger-ghost{background:var(--surface);color:var(--bad)}
+.btn:disabled{opacity:.45;cursor:default;box-shadow:none}
+.mini{display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border:2px solid var(--accent);border-radius:12px;background:var(--surface);color:var(--accent);font-size:14px;font-weight:700;text-decoration:none;white-space:nowrap}
+.mini.danger{border-color:var(--bad);color:var(--bad)}
+.link{display:inline;min-height:32px;padding:0;border:0;background:none;color:inherit;font-weight:700;text-decoration:underline}
+.stack{display:grid;gap:12px}
+.top-gap{margin-top:20px}
+.more{margin-top:12px}
+.actions3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:14px}
+.actions3 .btn{min-height:50px;font-size:15px;padding:0 6px}
+.two-col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+
+/* cards and detail */
+.card{background:var(--surface);border:2px solid var(--edge);border-radius:var(--r);box-shadow:0 3px 0 var(--edge);padding:14px}
+.info-card{margin-bottom:14px}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 16px;margin:0;align-items:center}
+.kv.tight{gap:8px 16px;margin-top:14px}
+.kv dt{font-size:14px;color:var(--muted)}
+.kv dd{margin:0;font-weight:700;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.kv dd.notes{font-weight:500;white-space:pre-wrap}
+.sel{user-select:text}
+.inline-acts{display:inline-flex;gap:8px;flex-wrap:wrap}
+.fee-h{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:14px}
+.nm{font-weight:700;font-size:18px}
+.prow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-top:1.5px solid var(--line)}
+.prow:first-child{border-top:0}
+.sum{padding:12px 14px;border-radius:12px;background:var(--surface2);border:2px solid var(--edge);margin-bottom:16px}
+.done{display:grid;justify-items:center;gap:4px;text-align:center;padding:10px 0 22px}
+.done-ic{display:grid;place-items:center;width:62px;height:62px;border-radius:50%;background:var(--ok-soft);color:var(--ok);border:2px solid var(--edge);margin-bottom:8px}
+.done-t{font-family:var(--f-display);font-size:30px}
+.done-s{font-weight:700;margin-top:6px}
+
+/* filters */
+.search{margin-bottom:10px}
+.search input,.search select{width:100%;min-height:50px;padding:0 14px;border:2px solid var(--edge);border-radius:14px;background:var(--surface)}
+.search.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.8fr);gap:8px}
+.chips{display:flex;gap:8px;overflow-x:auto;margin-inline:-16px;padding:2px 16px 12px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip-btn{flex:none;min-height:42px;padding:0 15px;border:2px solid var(--edge);border-radius:21px;background:var(--surface);font-weight:700;font-size:15px;white-space:nowrap}
+.chip-btn span{margin-left:7px;font-size:13px;opacity:.75}
+.chip-btn.on{background:var(--accent);color:var(--on-accent)}
+.mnav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.mnav-l{font-family:var(--f-display);font-size:23px}
+.mnav .icon-btn{background:var(--surface);border:2px solid var(--edge)}
+.strip{display:flex;gap:8px;margin-bottom:12px}
+.strip>div{flex:1;min-width:0;background:var(--surface);border:2px solid var(--edge);border-radius:12px;padding:6px 12px}
+.strip span{display:block;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.strip b{font-family:var(--f-display);font-weight:400;font-size:21px;font-variant-numeric:tabular-nums}
+.strip.one{margin:12px 0 0}
+
+/* classes and reports */
+.cgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.ctile{display:block;text-align:left;padding:12px 14px 12px;border:2px solid var(--edge);border-radius:var(--r);box-shadow:0 3px 0 var(--edge);background:var(--surface);min-height:124px;border-top-width:10px;border-top-color:var(--teal)}
+.ctile:nth-child(3n+2){border-top-color:var(--yellow)}
+.ctile:nth-child(3n){border-top-color:var(--orange)}
+.ctile:active{background:var(--surface2)}
+.ct-h{font-family:var(--f-display);font-size:23px;line-height:1.1}
+.ct-n{font-size:14px;color:var(--muted)}
+.ct-m{font-weight:700;font-variant-numeric:tabular-nums}
+.ct-m span{font-weight:500;color:var(--muted);font-size:13px}
+.cw{margin-bottom:14px}
+.cw:last-child{margin-bottom:0}
+.cw-h{display:flex;justify-content:space-between;gap:10px;margin-bottom:6px;font-variant-numeric:tabular-nums}
+.cw-h span{color:var(--muted);font-size:14px}
+.trend{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;height:152px;align-items:end}
+.tcol{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;height:100%;min-width:0}
+.tval{font-size:12px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+.tbar{display:flex;align-items:flex-end;width:100%;max-width:34px;background:var(--surface2);border:1.5px solid var(--edge);border-radius:6px 6px 2px 2px;overflow:hidden}
+.tbar i{display:block;width:100%;background:var(--teal)}
+.tmon{font-size:13px;font-weight:600;color:var(--muted)}
+.tmon.cur{color:var(--ink);font-weight:800}
+.legend{display:flex;gap:16px;justify-content:center;margin-top:10px;font-size:13px;color:var(--muted);font-weight:700}
+.lg{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;border:1.5px solid var(--edge)}
+.lg-a{background:var(--teal)}.lg-b{background:var(--surface2)}
+
+/* notices, empty */
+.note{margin-bottom:14px;padding:12px 14px;border-radius:14px;background:var(--warn-soft);color:var(--warn);border:2px solid var(--edge);font-size:15px;font-weight:700}
+.note.info{background:var(--accent-soft);color:var(--accent)}
+.empty{text-align:center;padding:26px 20px 30px;background:var(--surface);border:2px solid var(--edge);border-radius:var(--r);box-shadow:0 3px 0 var(--edge)}
+.empty h2{font-size:26px;margin-bottom:8px}
+.empty p{color:var(--muted);max-width:34ch;margin:0 auto 22px}
+.empty .stack{max-width:340px;margin-inline:auto}
+.hint{font-size:13px;color:var(--muted)}
+.hint.pad{margin-top:8px}
+.hint.center{text-align:center;font-size:14px}
+
+/* sheets */
+.scrim{position:fixed;inset:0;z-index:50;background:rgba(30,15,5,.6)}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;flex-direction:column;max-width:600px;max-height:92%;margin-inline:auto;background:var(--surface);border:3px solid var(--edge);border-bottom:0;border-radius:24px 24px 0 0;box-shadow:0 -10px 34px rgba(0,0,0,.3);overflow:hidden}
+.sheet:focus{outline:none}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px 8px 20px;background:var(--yellow);color:var(--on-yellow);border-bottom:3px solid var(--edge)}
+.sheet-head h2{font-size:24px}
+.sheet-head .icon-btn{color:var(--on-yellow);background:rgba(255,255,255,.55)}
+.sheet-body{overflow-y:auto;overscroll-behavior:contain;padding:16px 20px calc(22px + env(safe-area-inset-bottom,0px))}
+.msg{margin-bottom:16px}
+.msg.small{font-size:14px;color:var(--muted);margin-bottom:8px}
+.check{display:flex;align-items:center;gap:12px;margin-bottom:16px;font-weight:700}
+.check input{flex:none;width:26px;height:26px;accent-color:var(--accent)}
+
+/* forms */
+.fld{display:grid;gap:6px;margin-bottom:14px}
+.fld label,.lbl{font-size:14px;font-weight:700}
+.fld input:not([type=radio]):not([type=checkbox]),.fld select,.fld textarea{width:100%;min-height:52px;padding:10px 14px;border:2px solid var(--edge);border-radius:14px;background:var(--surface);font-size:16px}
+.fld textarea{resize:vertical}
+.fld input:focus,.fld select:focus,.fld textarea:focus,.search input:focus,.search select:focus{outline:3px solid var(--accent);outline-offset:1px}
+.radios{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.radios label{position:relative;font-weight:700}
+.radios input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.radios span{display:flex;align-items:center;justify-content:center;min-height:52px;border:2px solid var(--edge);border-radius:14px;background:var(--surface)}
+.radios input:checked+span{background:var(--yellow);color:var(--on-yellow);box-shadow:0 3px 0 var(--edge)}
+.radios input:focus-visible+span{outline:3px solid var(--accent);outline-offset:2px}
+.err{margin-bottom:12px;padding:10px 12px;border-radius:12px;background:var(--bad-soft);color:var(--bad);border:2px solid var(--bad);font-weight:700}
+.filebtn{position:relative;cursor:pointer}
+.filebtn input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.filebtn:focus-within{outline:3px solid var(--accent);outline-offset:2px}
+
+/* toast */
+#toast{position:fixed;left:50%;bottom:calc(94px + env(safe-area-inset-bottom,0px));z-index:80;max-width:min(92vw,420px);padding:12px 18px;border-radius:14px;background:var(--ink);color:var(--bg);font-weight:700;text-align:center;opacity:0;transform:translate(-50%,16px);pointer-events:none;transition:opacity .2s,transform .2s}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}.spin{animation-duration:2.4s}.btn:active:not(:disabled),.fab:active{transform:none}}
+@media (min-width:520px){.tv{font-size:31px}.three .tv{font-size:25px}.top h1{font-size:27px}}
+
+/* ---- native app (Android / iOS): the web view runs edge to edge, so the notch and gesture bar are padded here ---- */
+html.native body{-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;overscroll-behavior:none}
+html.native input,html.native textarea,html.native select,html.native .sel{-webkit-user-select:text;user-select:text}
+html.native .top{top:0;padding-top:env(safe-area-inset-top,0px)}
+
+</style>
+<header class="top" id="top"><div class="wrap top-in"><div class="top-t"><div class="eyebrow">Kids Tuition Classes</div><h1><span>Dashboard</span></h1></div></div></header>
+<main class="wrap" id="view"><div class="loading"><div class="spin"></div>Opening your register…</div></main>
+<button class="fab" id="fab" data-act="addStudent" hidden><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add student</button>
+<nav class="nav" id="nav" aria-label="Main"></nav>
+<div id="sheetRoot"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+/* Pure logic for Tuition Fee Manager: dates, fee status, monthly generation, totals, exports. No DOM here. */
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MON=MONTHS.map(m=>m.slice(0,3));
+const DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const TUITION='Kids Tuition Classes';
+const TAGLINE='Because Every Child Deserves the Best Start';
+const CLASSES=['PG','Nursery','LKG','UKG','1','2','3','4','5','6','7','8'];
+const CLASS_NAMES={PG:'PG',Nursery:'Nursery',LKG:'LKG',UKG:'UKG'};
+const clsName=c=>CLASS_NAMES[c]||('Class '+c);
+const DEFAULT_BATCHES=[{id:'b1',start:'16:00',end:'17:00'},{id:'b2',start:'17:00',end:'18:00'},{id:'b3',start:'18:00',end:'19:00'}];
+const MODES=['Cash','UPI','Bank Transfer','Other'];
+
+const pad=n=>String(n).padStart(2,'0');
+const isObj=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
+const sumBy=(a,f)=>a.reduce((t,x)=>t+f(x),0);
+
+/* ---------- dates ---------- */
+function ymd(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function addMonths(m,n){const [y,mo]=m.split('-').map(Number);const t=y*12+(mo-1)+n;return Math.floor(t/12)+'-'+pad(t%12+1);}
+function daysInMonth(y,m){return new Date(y,m,0).getDate();}
+function dueDateFor(month,dueDay){
+  const [y,m]=month.split('-').map(Number);
+  const want=Math.round(+dueDay)||10;
+  const d=Math.min(Math.max(1,want),daysInMonth(y,m));
+  return y+'-'+pad(m)+'-'+pad(d);
+}
+function diffDays(a,b){
+  const n=s=>{const [y,m,d]=s.split('-').map(Number);return Date.UTC(y,m-1,d)/864e5;};
+  return Math.round(n(b)-n(a));
+}
+function weekday(s){const [y,m,d]=s.split('-').map(Number);return DAYS[new Date(Date.UTC(y,m-1,d)).getUTCDay()];}
+function monthLabel(m){const [y,mo]=m.split('-').map(Number);return MONTHS[mo-1]+' '+y;}
+function monthShort(m){const mo=+m.split('-')[1];return MON[mo-1];}
+function fmtLong(s){const [,m,d]=s.split('-').map(Number);return d+' '+MONTHS[m-1];}
+function fmtShort(s){const [,m,d]=s.split('-').map(Number);return d+' '+MON[m-1];}
+function fmtTime(t){const [h,m]=String(t||'').split(':').map(Number);if(isNaN(h))return '';return (h%12||12)+':'+pad(m||0)+' '+(h>=12?'PM':'AM');}
+function batchText(b){return b?fmtTime(b.start)+' – '+fmtTime(b.end):'';}
+function fmtDateFull(s){const [y,m,d]=s.split('-').map(Number);return d+' '+MONTHS[m-1]+' '+y;}
+function ordinal(n){const v=n%100;if(v>=11&&v<=13)return n+'th';return n+({1:'st',2:'nd',3:'rd'}[n%10]||'th');}
+
+/* ---------- money ---------- */
+function inr(n){const v=Math.round((+n||0)*100)/100;return '₹'+v.toLocaleString('en-IN');}
+function compact(n){
+  n=+n||0;
+  if(n>=1e5)return '₹'+(+(n/1e5).toFixed(1))+'L';
+  if(n>=1e3)return '₹'+(+(n/1e3).toFixed(1))+'k';
+  return '₹'+n;
+}
+
+/* ---------- objects ---------- */
+function deepMerge(a,b){
+  if(!isObj(a)||!isObj(b))return b;
+  const o={...a};
+  for(const k of Object.keys(b))o[k]=(isObj(a[k])&&isObj(b[k]))?deepMerge(a[k],b[k]):b[k];
+  return o;
+}
+
+/* ---------- students ---------- */
+function classKey(s){return CLASSES.includes(s.cls)?s.cls:'';}
+function isLegacyClass(s){return !CLASSES.includes(s.cls);}
+function classLabel(s){
+  if(CLASSES.includes(s.cls))return clsName(s.cls);
+  if(s.cls==='Other')return s.clsOther||'Other';
+  return s.cls?'Class '+s.cls:'No class';
+}
+function matchStudent(s,q,extra){
+  q=(q||'').trim().toLowerCase();
+  if(!q)return true;
+  const hay=[s.name,s.parent,classLabel(s),s.cls,extra].filter(Boolean).join(' ').toLowerCase();
+  if(hay.includes(q))return true;
+  const digits=q.replace(/\D/g,'');
+  return digits.length>=3&&(s.mobile||'').replace(/\D/g,'').includes(digits);
+}
+
+/* ---------- fees ---------- */
+function flattenFees(students){
+  const out=[];
+  for(const s of students){
+    const f=s.fees||{};
+    for(const m of Object.keys(f)){
+      out.push({key:s.id+'|'+m,studentId:s.id,month:m,amount:+f[m].amount||0,dueDate:f[m].dueDate,payments:f[m].payments||[],note:f[m].note||'',reminders:f[m].reminders||[]});
+    }
+  }
+  return out;
+}
+function paidOf(fee){return sumBy(fee.payments||[],p=>+p.amount||0);}
+function lastPayment(fee){
+  const ps=(fee.payments||[]).slice().sort((a,b)=>(a.date+a.id).localeCompare(b.date+b.id));
+  return ps.length?ps[ps.length-1]:null;
+}
+function lastPayDate(fee){const p=lastPayment(fee);return p?p.date:null;}
+
+function feeStatus(fee,today,soonDays){
+  soonDays=soonDays==null?3:soonDays;
+  const paid=paidOf(fee);
+  const remaining=Math.max(0,(+fee.amount||0)-paid);
+  const days=diffDays(today,fee.dueDate);
+  if(remaining<=0)return {status:'paid',paid,remaining:0,days,overdue:false,dueToday:false,dueSoon:false,late:0};
+  const overdue=days<0,dueToday=days===0,dueSoon=days>=0&&days<=soonDays;
+  return {status:paid>0?'partial':(overdue?'overdue':'pending'),paid,remaining,days,overdue,dueToday,dueSoon,late:overdue?-days:0};
+}
+function statusLabel(st){return {paid:'Paid',partial:'Partially Paid',overdue:'Overdue',pending:'Pending'}[st.status];}
+
+/* Fee records that should exist but do not yet. Starts at the joining month, but never more than 2 months back. */
+function missingFees(students,today){
+  const cur=today.slice(0,7),floor=addMonths(cur,-2),out=[];
+  for(const s of students){
+    if(s.active===false)continue;
+    const join=(s.joinDate||today).slice(0,7);
+    const start=join>floor?join:floor;
+    const have=s.fees||{},add={};
+    for(let m=start;m<=cur;m=addMonths(m,1)){
+      if(!have[m])add[m]={amount:+s.monthlyFee||0,dueDate:dueDateFor(m,s.dueDay),payments:[]};
+    }
+    if(Object.keys(add).length)out.push({id:s.id,fees:add});
+  }
+  return out;
+}
+/* After a student's fee or due day changes: update this and later months that have no payments yet. */
+function repriceFees(s,today){
+  const cur=today.slice(0,7),patch={};
+  for(const m of Object.keys(s.fees||{})){
+    if(m<cur)continue;
+    const f=s.fees[m];
+    if((f.payments||[]).length)continue;
+    const amount=+s.monthlyFee||0,dueDate=dueDateFor(m,s.dueDay);
+    if(f.amount!==amount||f.dueDate!==dueDate)patch[m]={amount,dueDate};
+  }
+  return patch;
+}
+
+/* ---------- alerts ---------- */
+function alertText(name,st,fee){
+  if(st.overdue)return 'Fee overdue: '+name+' – '+inr(st.remaining);
+  if(st.dueToday)return 'Fee due today: '+name+' – '+inr(st.remaining);
+  return 'Fee due soon: '+name+' – '+inr(st.remaining)+' – Due on '+fmtLong(fee.dueDate);
+}
+function alertDetail(st,fee){
+  const m=monthLabel(fee.month);
+  if(st.overdue)return m+' · '+st.late+(st.late===1?' day':' days')+' late';
+  if(st.dueToday)return m+' · due today';
+  return m+' · due in '+st.days+(st.days===1?' day':' days');
+}
+function buildAlerts(students,today,soon){
+  const by=new Map(students.map(s=>[s.id,s]));
+  const out=[];
+  for(const fee of flattenFees(students)){
+    const s=by.get(fee.studentId);
+    const st=feeStatus(fee,today,soon);
+    if(st.remaining<=0)continue;
+    if(!(st.overdue||st.dueToday||st.dueSoon))continue;
+    const kind=st.overdue?0:(st.dueToday?1:2);
+    out.push({s,fee,st,kind,msg:alertText(s.name,st,fee),detail:alertDetail(st,fee)});
+  }
+  out.sort((a,b)=>a.kind-b.kind||(a.kind===0?b.st.late-a.st.late:a.st.days-b.st.days)||a.s.name.localeCompare(b.s.name));
+  return out;
+}
+
+/* ---------- totals ---------- */
+function summarize(fees,today,soon){
+  let expected=0,received=0,pending=0,overdueAmt=0,overdueN=0,soonAmt=0,soonN=0,paidN=0;
+  const owing=new Set();
+  for(const f of fees){
+    const st=feeStatus(f,today,soon);
+    expected+=f.amount;received+=st.paid;pending+=st.remaining;
+    if(st.remaining>0)owing.add(f.studentId);
+    if(st.overdue){overdueAmt+=st.remaining;overdueN++;}
+    if(st.dueSoon){soonAmt+=st.remaining;soonN++;}
+    if(st.status==='paid')paidN++;
+  }
+  return {expected,received,pending,overdueAmt,overdueN,soonAmt,soonN,paidN,pendingStudents:owing.size,count:fees.length};
+}
+function classTotals(students,month,today,soon){
+  const by=new Map(students.map(s=>[s.id,s]));
+  const out={};
+  for(const c of CLASSES)out[c]={n:0,expected:0,received:0,pending:0};
+  for(const f of flattenFees(students)){
+    if(f.month!==month)continue;
+    const s=by.get(f.studentId),st=feeStatus(f,today,soon),t=out[classKey(s)];
+    if(!t)continue;
+    t.n++;t.expected+=f.amount;t.received+=st.paid;t.pending+=st.remaining;
+  }
+  return out;
+}
+function trend(students,endMonth,count,today,soon){
+  const all=flattenFees(students),rows=[];
+  for(let i=count-1;i>=0;i--){
+    const m=addMonths(endMonth,-i);
+    const t=summarize(all.filter(f=>f.month===m),today,soon);
+    rows.push({month:m,expected:t.expected,received:t.received});
+  }
+  return rows;
+}
+
+/* ---------- receipts and reminders ---------- */
+/* Receipt numbers: KT-0001, KT-0002 ... stored on each payment; settings.receiptSeq remembers the highest number so deleted payments never free a number. */
+const fmtReceiptNo=n=>'KT-'+String(n).padStart(4,'0');
+function receiptSeqOf(no){const m=/^KT-(\d+)$/.exec(no||'');return m?+m[1]:0;}
+function receiptNo(p){return p.no||('R-'+(p.date||'').replace(/-/g,'').slice(2)+'-'+String(p.id||'').slice(-3).toUpperCase());}
+function maxReceiptSeq(students,seq){
+  let mx=+seq||0;
+  for(const s of students)for(const m of Object.keys(s.fees||{}))for(const p of (s.fees[m].payments||[])){const n=receiptSeqOf(p.no);if(n>mx)mx=n;}
+  return mx;
+}
+const nextReceiptNo=(students,seq)=>maxReceiptSeq(students,seq)+1;
+/* Payments recorded before numbering existed get numbers in date order. */
+function missingReceiptNos(students,seq){
+  const need=[];
+  for(const s of students)for(const m of Object.keys(s.fees||{}))for(const p of (s.fees[m].payments||[]))if(!p.no)need.push({s,m,p});
+  if(!need.length)return {patches:[],seq:maxReceiptSeq(students,seq)};
+  need.sort((a,b)=>(a.p.date+'|'+a.p.id).localeCompare(b.p.date+'|'+b.p.id));
+  let n=maxReceiptSeq(students,seq);
+  const given=new Map();
+  for(const x of need){n++;given.set(x.s.id+'|'+x.m+'|'+x.p.id,fmtReceiptNo(n));}
+  const patches=[];
+  for(const s of students){
+    const fees={};
+    for(const m of Object.keys(s.fees||{})){
+      const ps=s.fees[m].payments||[];
+      if(ps.some(p=>given.has(s.id+'|'+m+'|'+p.id)))fees[m]={payments:ps.map(p=>given.has(s.id+'|'+m+'|'+p.id)?{...p,no:given.get(s.id+'|'+m+'|'+p.id)}:p)};
+    }
+    if(Object.keys(fees).length)patches.push({id:s.id,fees});
+  }
+  return {patches,seq:n};
+}
+/* Status of the fee right after this payment was made. */
+function receiptInfo(fee,p){
+  const ps=(fee.payments||[]).slice().sort((a,b)=>(a.date+a.id).localeCompare(b.date+b.id));
+  let cum=0;
+  for(const x of ps){cum+=+x.amount||0;if(x.id===p.id)break;}
+  const balance=Math.max(0,(+fee.amount||0)-cum);
+  return {status:balance<=0?'Paid':'Partially Paid',balance,cum};
+}
+function waNumber(mobile){
+  let d=String(mobile||'').replace(/\D/g,'');
+  if(d.length===11&&d[0]==='0')d=d.slice(1);
+  if(d.length===10)d='91'+d;
+  return d;
+}
+function waLink(mobile,text){
+  const n=waNumber(mobile);
+  return n?'https://wa.me/'+n+'?text='+encodeURIComponent(text):'';
+}
+function reminderText(s,fee,st,tuition){
+  const name=tuition||TUITION;
+  const lines=[s.parent?'Hello '+s.parent+',':'Hello,','','This is a fee reminder from '+name+'.','',
+    'Student Name: '+s.name,'Fee Month: '+monthLabel(fee.month),'Pending Amount: '+inr(st.remaining),'Due Date: '+fmtDateFull(fee.dueDate),'',
+    st.overdue?'The due date has passed. Kindly make the payment at your convenience.':'Kindly make the payment by the due date.','Thank you.','– '+name];
+  return lines.join('\n');
+}
+function receiptText(s,fee,p,tuition){
+  const info=receiptInfo(fee,p);
+  return 'Fee receipt '+receiptNo(p)+'\n'+(tuition||TUITION)+'\nStudent: '+s.name+' ('+classLabel(s)+')\nFee month: '+monthLabel(fee.month)+'\nAmount paid: '+inr(p.amount)+'\nPayment date: '+fmtDateFull(p.date)+'\nPayment mode: '+p.mode+'\nStatus: '+info.status+(info.balance>0?' (balance '+inr(info.balance)+')':'')+'\nThank you.';
+}
+
+/* ---------- exports ---------- */
+function csvEscape(v){v=v==null?'':String(v);return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
+function toCsv(rows){return '﻿'+rows.map(r=>r.map(csvEscape).join(',')).join('\r\n');}
+function byClassName(by){return (a,b)=>{
+  const sa=by.get(a.studentId),sb=by.get(b.studentId);
+  return CLASSES.indexOf(classKey(sa))-CLASSES.indexOf(classKey(sb))||sa.name.localeCompare(sb.name);
+};}
+function ledgerRows(students,month,today,soon,bl){
+  bl=bl||(()=>'');
+  const by=new Map(students.map(s=>[s.id,s]));
+  const rows=[['Student','Class','Batch','Parent','Mobile','Month','Monthly Fee','Due Date','Status','Paid','Remaining','Payment Date','Payment Mode']];
+  flattenFees(students).filter(f=>f.month===month).sort(byClassName(by)).forEach(f=>{
+    const s=by.get(f.studentId),st=feeStatus(f,today,soon),lp=lastPayment(f);
+    rows.push([s.name,classLabel(s),bl(s),s.parent||'',s.mobile||'',monthLabel(f.month),f.amount,f.dueDate,statusLabel(st)+(st.overdue&&st.status==='partial'?' (overdue)':''),st.paid,st.remaining,lp?lp.date:'',lp?lp.mode:'']);
+  });
+  return rows;
+}
+function pendingRows(students,today,soon){
+  const by=new Map(students.map(s=>[s.id,s]));
+  const rows=[['Student','Class','Parent','Mobile','Month','Monthly Fee','Paid','Remaining','Due Date','Days Overdue','Status']];
+  flattenFees(students).sort(byClassName(by)).forEach(f=>{
+    const s=by.get(f.studentId),st=feeStatus(f,today,soon);
+    if(st.remaining<=0)return;
+    rows.push([s.name,classLabel(s),s.parent||'',s.mobile||'',monthLabel(f.month),f.amount,st.paid,st.remaining,f.dueDate,st.late,st.overdue?'Overdue':statusLabel(st)]);
+  });
+  return rows;
+}
+function paymentRows(students){
+  const by=new Map(students.map(s=>[s.id,s]));
+  const list=[];
+  for(const f of flattenFees(students))for(const p of f.payments)list.push({s:by.get(f.studentId),f,p});
+  list.sort((a,b)=>b.p.date.localeCompare(a.p.date)||a.s.name.localeCompare(b.s.name));
+  const rows=[['Receipt No','Payment Date','Student','Class','Month','Amount','Mode','Notes']];
+  list.forEach(x=>rows.push([receiptNo(x.p),x.p.date,x.s.name,classLabel(x.s),monthLabel(x.f.month),x.p.amount,x.p.mode,x.p.notes||'']));
+  return rows;
+}
+function studentRows(students,bl){
+  bl=bl||(()=>'');
+  const rows=[['Name','Class','Batch','Parent','Mobile','Monthly Fee','Joining Date','Due Day','Active','Notes']];
+  students.slice().sort((a,b)=>CLASSES.indexOf(classKey(a))-CLASSES.indexOf(classKey(b))||a.name.localeCompare(b.name))
+    .forEach(s=>rows.push([s.name,classLabel(s),bl(s),s.parent||'',s.mobile||'',s.monthlyFee,s.joinDate||'',s.dueDay||'',s.active===false?'No':'Yes',s.notes||'']));
+  return rows;
+}
+
+/* ---------- sample data (clearly flagged, removable) ---------- */
+function sampleStudents(today){
+  const cur=today.slice(0,7),prev=addMonths(cur,-1);
+  const defs=[
+    ['Rahul Sharma','8','Suresh Sharma','9800000001',2000,10,-2],
+    ['Aman Verma','8','Pooja Verma','9800000002',2000,10,-2],
+    ['Riya Jain','8','Anil Jain','9800000003',1500,5,-1],
+    ['Priya Meena','6','Kavita Meena','9800000004',1200,7,-2],
+    ['Karan Singh','3','Rajendra Singh','9800000005',2500,15,-2],
+    ['Neha Rathore','LKG','Mahesh Rathore','9800000006',3000,1,-1],
+    ['Dev Joshi','5','Sunita Joshi','9800000007',1000,10,0],
+    ['Ishita Soni','7','Vikram Soni','9800000008',1400,12,-2]
+  ];
+  return defs.map((d,i)=>{
+    const id='s_sample'+i,start=addMonths(cur,d[6]),fees={};
+    for(let m=start;m<=cur;m=addMonths(m,1)){
+      const due=dueDateFor(m,d[5]),amount=d[4],payments=[];
+      const pay=(date,amt,mode)=>payments.push({id:'p_'+id+'_'+m,date,amount:amt,mode,notes:''});
+      if(m<cur){
+        if(!(i===1&&m===prev))pay(due,amount,i%2?'Cash':'UPI');
+      }else{
+        const when=due<today?due:today;
+        const k=i%4;
+        if(k===0)pay(when,amount,'UPI');
+        else if(k===2)pay(when,Math.round(amount/2),'Cash');
+        else if(k===3&&due<=today)pay(when,amount,'Bank Transfer');
+      }
+      fees[m]={amount,dueDate:due,payments};
+    }
+    return {id,name:d[0],cls:d[1],clsOther:'',batchId:DEFAULT_BATCHES[i%3].id,parent:d[2],mobile:d[3],monthlyFee:d[4],joinDate:start+'-05',dueDay:d[5],notes:'Sample student',active:true,sample:true,createdAt:today,fees};
+  });
+}
+
+if(typeof module!=='undefined'&&module.exports){
+  module.exports={MONTHS,CLASSES,MODES,TUITION,TAGLINE,DEFAULT_BATCHES,clsName,fmtTime,batchText,fmtDateFull,isLegacyClass,fmtReceiptNo,receiptSeqOf,maxReceiptSeq,nextReceiptNo,missingReceiptNos,receiptInfo,pad,ymd,addMonths,daysInMonth,dueDateFor,diffDays,weekday,monthLabel,monthShort,fmtLong,fmtShort,ordinal,inr,compact,deepMerge,classKey,classLabel,matchStudent,flattenFees,paidOf,lastPayment,lastPayDate,feeStatus,statusLabel,missingFees,repriceFees,alertText,alertDetail,buildAlerts,summarize,classTotals,trend,receiptNo,waNumber,waLink,reminderText,receiptText,csvEscape,toCsv,ledgerRows,pendingRows,paymentRows,studentRows,sampleStudents,sumBy};
+}
+
+/* Fee reminder delivery.
+   Today: the tutor taps "Send WhatsApp Reminder" and WhatsApp opens with the message already written (no paid API).
+   Later: add an automated provider below (WhatsApp Business Cloud API, SMS, ...), set Messaging.active to it, and call
+   Messaging.deliver(msg) from a scheduled job or a button. Messages, the reminder log on each fee and the screens stay as they are. */
+const Messaging={
+  active:'manualWhatsApp',
+  providers:{
+    manualWhatsApp:{
+      id:'manual-whatsapp',automated:false,
+      /* Returns a link the tutor opens; nothing is sent until they press send in WhatsApp. */
+      prepare(msg){const url=waLink(msg.to,msg.text);return url?{kind:'link',url}:null;}
+    },
+    whatsappCloudApi:{
+      id:'whatsapp-cloud-api',automated:true,
+      /* Placeholder for the future automated provider. A real one would POST msg.to / msg.text to a small server that holds the API token. */
+      async deliver(msg){throw new Error('WhatsApp automation is not connected yet.');}
+    }
+  },
+  /* One message shape for every provider. */
+  compose(student,fee,st,tuition){
+    return {type:'fee-reminder',studentId:student.id,month:fee.month,to:student.mobile,text:reminderText(student,fee,st,tuition)};
+  },
+  provider(){return this.providers[this.active];},
+  prepare(msg){const p=this.provider();return p.automated?null:p.prepare(msg);},
+  async deliver(msg){
+    const p=this.provider();
+    if(!p.automated)throw new Error('The current provider needs a person to press send.');
+    return p.deliver(msg);
+  },
+  logEntry(){return {date:TODAY,channel:this.provider().id};}
+};
+
+/* ---------- state ---------- */
+const DEFAULT_SETTINGS={tuitionName:TUITION,teacherName:'Prerana Khandelwal',teacherQual:'PGDCA, M.Com',phone:'+91 8824262842',soonDays:3,lastBackup:null,receiptSeq:0};
+const S={students:[],settings:{...DEFAULT_SETTINGS},loaded:false,definitive:false,shown:false,settingsLoaded:false};
+const D={fees:[],byId:new Map(),bySt:new Map(),key:new Map()};
+const UI={tab:'dash',month:null,sub:null,paidAll:false,rep:'',f:{students:{q:'',cls:'all',batch:'all'},fees:{q:'',cls:'all',status:'all'}}};
+let TODAY=ymd(new Date());
+UI.month=TODAY.slice(0,7);
+let Repo=null,MODE='boot',CONFIRM=null,genBusy=false;
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const SOON=()=>S.settings.soonDays||3;
+const sget=id=>D.byId.get(id);
+const newId=p=>p+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const clean=o=>JSON.parse(JSON.stringify(o));
+const strip=s=>{const c=clean(s);delete c.id;return c;};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const sorted=(a,f)=>a.slice().sort(f);
+const TUI=()=>S.settings.tuitionName||TUITION;
+const batches=()=>S.settings.batches||DEFAULT_BATCHES;
+const batchOf=s=>batches().find(b=>b.id===s.batchId)||null;
+const batchLabel=s=>batchText(batchOf(s));
+
+function rebuild(){
+  D.fees=flattenFees(S.students);
+  D.byId=new Map(S.students.map(s=>[s.id,s]));
+  D.bySt=new Map();D.key=new Map();
+  for(const f of D.fees){
+    if(!D.bySt.has(f.studentId))D.bySt.set(f.studentId,[]);
+    D.bySt.get(f.studentId).push(f);
+    D.key.set(f.studentId+'|'+f.month,f);
+  }
+}
+const feesFor=m=>D.fees.filter(f=>f.month===m&&D.byId.has(f.studentId));
+const withSt=f=>({f,s:D.byId.get(f.studentId),st:feeStatus(f,TODAY,SOON())});
+function minMonth(){let m=TODAY.slice(0,7);for(const f of D.fees)if(f.month<m)m=f.month;return m;}
+
+/* ---------- storage: cloud database when available, this device otherwise ---------- */
+let chain=Promise.resolve();
+async function retry(fn,n){
+  n=n||0;
+  try{return await fn();}
+  catch(e){
+    const c=e&&e.code;
+    if((c==='resource_exhausted'||c==='unavailable')&&n<4){await sleep(400*(n+1)+Math.random()*300);return retry(fn,n+1);}
+    throw e;
+  }
+}
+function queued(fn){const p=chain.then(()=>retry(fn));chain=p.catch(()=>{});return p;}
+async function write(fn){
+  try{return await queued(fn);}
+  catch(e){console.error(e);toast('Could not save. Check your connection and try again.');throw e;}
+}
+
+function dbRepo(db){
+  const col=db.collection('students'),sdoc=db.doc('settings/main');
+  return {
+    start(){
+      col.onSnapshot(snap=>{
+        S.students=snap.docs.map(d=>({id:d.id,...d.data()}));
+        onData(!snap.metadata.fromCache);
+      },onStoreError);
+      sdoc.onSnapshot(snap=>{
+        S.settings={...DEFAULT_SETTINGS,...(snap.exists?snap.data():{})};
+        if(!snap.metadata.fromCache)S.settingsLoaded=true;
+        onData(false,true);
+      },onStoreError);
+    },
+    setStudent:s=>col.doc(s.id).set(strip(s)),
+    patchStudent:(id,p)=>col.doc(id).update(clean(p)),
+    deleteStudent:id=>col.doc(id).delete(),
+    saveSettings:()=>sdoc.set(clean(S.settings))
+  };
+}
+function localRepo(){
+  const KEY='tuition-fee-manager.v1';
+  let st={students:{},settings:{}};
+  try{const raw=localStorage.getItem(KEY);if(raw)st=JSON.parse(raw);}catch(e){}
+  if(!st.students)st.students={};
+  const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){throw {code:'storage',message:'Could not save on this device'};}};
+  const emit=()=>{
+    S.students=Object.keys(st.students).map(id=>({id,...st.students[id]}));
+    S.settings={...DEFAULT_SETTINGS,...(st.settings||{})};
+    S.settingsLoaded=true;
+    onData(true);
+  };
+  return {
+    start(){emit();},
+    async setStudent(s){st.students[s.id]=strip(s);persist();emit();},
+    async patchStudent(id,p){st.students[id]=deepMerge(st.students[id]||{},clean(p));persist();emit();},
+    async deleteStudent(id){delete st.students[id];persist();emit();},
+    async saveSettings(){st.settings=clean(S.settings);persist();emit();}
+  };
+}
+function onStoreError(e){
+  console.error(e);
+  if(!S.loaded&&MODE==='cloud'){
+    Repo=localRepo();MODE='local';Repo.start();
+    toast('Cloud storage is not available. Saving on this device only.');
+  }
+}
+
+/* Change the in-memory copy right away; the store write follows. */
+function applyLocal(id,patch){
+  const i=S.students.findIndex(s=>s.id===id);
+  if(i<0)return;
+  S.students=S.students.slice();
+  S.students[i]=deepMerge(S.students[i],patch);
+  rebuild();
+}
+async function addStudentDoc(doc){S.students=[...S.students,doc];rebuild();renderBody();await write(()=>Repo.setStudent(doc));}
+async function patchStudent(id,patch){applyLocal(id,patch);renderBody();await write(()=>Repo.patchStudent(id,patch));}
+async function removeStudent(id){S.students=S.students.filter(s=>s.id!==id);rebuild();renderBody();await write(()=>Repo.deleteStudent(id));}
+async function saveSettings(o){
+  for(let i=0;i<30&&!S.settingsLoaded;i++)await sleep(100);   /* never write defaults over saved settings that have not arrived yet */
+  S.settings={...S.settings,...o};
+  await write(()=>Repo.saveSettings());
+}
+
+function onData(definitive,settingsOnly){
+  rebuild();
+  if(definitive){S.definitive=true;S.loaded=true;}
+  if(UI.sub&&UI.sub.type==='student'&&!D.byId.has(UI.sub.id))UI.sub=null;
+  if(!S.loaded)return;
+  if(!S.shown){S.shown=true;renderAll();}
+  else{
+    renderTop();renderNav();
+    const a=document.activeElement;
+    if(!(a&&a.closest&&a.closest('#hd')))renderHd();
+    renderBody();
+  }
+  if(S.settingsLoaded)ensureReceiptNos();
+  if(!settingsOnly)ensureFees();
+}
+
+/* Create this month's fee record (and any missing ones) for every active student. Safe to run any time. */
+async function ensureFees(){
+  if(genBusy||!S.definitive||!Repo)return;
+  genBusy=true;
+  try{
+    for(let i=0;i<5;i++){   /* run again in case students arrived while this was working */
+      const todo=missingFees(S.students,TODAY);
+      if(!todo.length)break;
+      for(const t of todo){
+        applyLocal(t.id,{fees:t.fees});
+        await write(()=>Repo.patchStudent(t.id,{fees:t.fees}));
+      }
+    }
+  }catch(e){}
+  genBusy=false;
+  renderBody();
+}
+
+/* Give every payment a receipt number (KT-0001 ...). Old payments are numbered once, in date order. */
+let rcBusy=false;
+async function ensureReceiptNos(){
+  if(rcBusy||!S.definitive||!Repo)return;
+  rcBusy=true;
+  try{
+    for(let i=0;i<5;i++){
+      const r=missingReceiptNos(S.students,S.settings.receiptSeq);
+      if(!r.patches.length)break;
+      for(const p of r.patches){
+        applyLocal(p.id,{fees:p.fees});
+        await write(()=>Repo.patchStudent(p.id,{fees:p.fees}));
+      }
+      if(r.seq>(+S.settings.receiptSeq||0))await saveSettings({receiptSeq:r.seq});
+    }
+  }catch(e){}
+  rcBusy=false;
+  renderBody();
+}
+
+/* ---------- small UI helpers ---------- */
+let toastTimer=null;
+function toast(msg){
+  const t=$('#toast');
+  if(!t)return;
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2800);
+}
+async function copyText(v){
+  try{await navigator.clipboard.writeText(v);toast('Copied');return;}catch(e){}
+  try{
+    const ta=document.createElement('textarea');ta.value=v;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();const ok=document.execCommand('copy');ta.remove();
+    toast(ok?'Copied':'Select the text and copy it');
+  }catch(e){toast('Select the text and copy it');}
+}
+async function saveFile(name,data){
+  if(window.NativeBridge){
+    try{return await window.NativeBridge.saveFile(name,data);}
+    catch(e){console.error(e);toast('Could not save the file.');return false;}
+  }
+  let dl=null;
+  try{dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;}catch(e){}
+  if(!dl){toast('Saving files is not available in this view.');return false;}
+  try{await dl.save({filename:name,data});return true;}
+  catch(e){if(!(e&&e.code==='declined'))toast('Could not save the file.');return false;}
+}
+const lastMode=()=>{try{return localStorage.getItem('tfm.mode')||'Cash';}catch(e){return 'Cash';}};
+const setLastMode=m=>{try{localStorage.setItem('tfm.mode',m);}catch(e){}};
+
+/* ---------- icons ---------- */
+const IC={
+  dash:'<rect x="3" y="3" width="7" height="9" rx="1.8"/><rect x="14" y="3" width="7" height="5" rx="1.8"/><rect x="14" y="12" width="7" height="9" rx="1.8"/><rect x="3" y="16" width="7" height="5" rx="1.8"/>',
+  students:'<circle cx="12" cy="8" r="4"/><path d="M4.5 21c0-4.2 3.4-6.8 7.5-6.8s7.5 2.6 7.5 6.8"/>',
+  fees:'<path d="M6 4h12M6 9h12M9 4c4 0 6 1.6 6 4.5S13 13 9 13H8l7 7"/>',
+  classes:'<path d="M3.5 5.5C3.5 4.7 4.2 4 5 4h6v15H5c-.8 0-1.5-.7-1.5-1.5z"/><path d="M20.5 5.5c0-.8-.7-1.5-1.5-1.5h-6v15h6c.8 0 1.5-.7 1.5-1.5z"/>',
+  reports:'<path d="M5 20V11M12 20V4M19 20v-6"/>',
+  gear:'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/>',
+  back:'<path d="M15 5l-7 7 7 7"/>',
+  chev:'<path d="M9 5l7 7-7 7"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  x:'<path d="M6 6l12 12M18 6L6 18"/>'
+};
+const icon=(n,sz)=>'<svg class="ic" width="'+(sz||22)+'" height="'+(sz||22)+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+IC[n]+'</svg>';
+
+/* ---------- shared bits ---------- */
+function badge(st){
+  let cls,txt;
+  if(st.status==='paid'){cls='ok';txt='Paid';}
+  else if(st.status==='partial'){cls=st.overdue?'bad':'warn';txt='Partially Paid';}
+  else if(st.overdue){cls='bad';txt='Overdue';}
+  else if(st.dueToday){cls='warn';txt='Due today';}
+  else if(st.dueSoon){cls='warn';txt='Due soon';}
+  else{cls='idle';txt='Pending';}
+  return '<span class="badge '+cls+'"><i></i>'+txt+'</span>';
+}
+const pill=t=>'<span class="pill">'+esc(t)+'</span>';
+const payBtn=(s,m)=>'<button class="mini" data-act="pay" data-sid="'+esc(s.id)+'" data-m="'+m+'">Mark paid</button>';
+const attrs=(s,m)=>'data-sid="'+esc(s.id)+'" data-m="'+m+'"';
+function tile(label,value,sub,tone){
+  return '<div class="tile"><div class="tl">'+label+'</div><div class="tv'+(tone?' t-'+tone:'')+'">'+value+'</div>'+(sub?'<div class="ts">'+sub+'</div>':'')+'</div>';
+}
+function chip(act,v,label,on,count){
+  return '<button class="chip-btn'+(on?' on':'')+'" data-act="'+act+'" data-v="'+esc(v)+'" aria-pressed="'+(on?'true':'false')+'">'+esc(label)+(count!=null?'<span>'+count+'</span>':'')+'</button>';
+}
+function monthNav(){
+  const cur=TODAY.slice(0,7),min=minMonth();
+  return '<div class="mnav"><button class="icon-btn" data-act="mprev" aria-label="Previous month"'+(UI.month<=min?' disabled':'')+'>'+icon('back')+'</button>'
+    +'<div class="mnav-l">'+monthLabel(UI.month)+'</div>'
+    +'<button class="icon-btn" data-act="mnext" aria-label="Next month"'+(UI.month>=cur?' disabled':'')+'>'+icon('chev')+'</button></div>';
+}
+function emptyStudents(){
+  return '<div class="empty"><div class="wordmark" aria-label="Kids Tuition Classes"><span class="wm-a">Kids</span><span class="wm-b">Tuition Classes</span></div><h2>Add your first student</h2><p>Each month a fee record is created for every student, and reminders show up here before the due date.</p>'
+    +'<div class="stack"><button class="btn btn-primary" data-act="addStudent">Add student</button><button class="btn btn-ghost" data-act="sample">Try with sample students</button></div></div>';
+}
+function feeRow(x,who){
+  const f=x.f,s=x.s,st=x.st,lp=lastPayDate(f);
+  const title=who==='month'?'<span class="nm">'+monthLabel(f.month)+'</span>':'<span class="nm">'+esc(s.name)+'</span>'+pill(classLabel(s));
+  let sub;
+  if(who==='month')sub=inr(f.amount)+' · '+(st.status==='paid'?'Paid '+fmtShort(lp):'Due '+fmtShort(f.dueDate));
+  else sub=inr(f.amount)+' · Due '+fmtShort(f.dueDate)+(st.status==='partial'?' · '+inr(st.remaining)+' left':'');
+  const note=who==='month'?'':(lp?'<span class="row-note">'+(st.status==='paid'?'Paid ':'Last paid ')+fmtShort(lp)+'</span>':'');
+  return '<div class="row" role="button" tabindex="0" data-act="openFee" '+attrs(s,f.month)+'>'
+    +'<div class="row-main"><div class="row-title">'+title+'</div><div class="row-sub">'+sub+'</div></div>'
+    +'<div class="row-end">'+badge(st)+note+(st.remaining>0?payBtn(s,f.month):'')+'</div></div>';
+}
+const listOf=rows=>'<div class="list">'+rows.join('')+'</div>';
+function amtRow(x,showMonth){
+  const f=x.f,s=x.s,st=x.st;
+  return '<div class="row" role="button" tabindex="0" data-act="openFee" '+attrs(s,f.month)+'>'
+    +'<div class="row-main"><div class="row-title"><span class="nm">'+esc(s.name)+'</span>'+pill(classLabel(s))+'</div>'
+    +'<div class="row-sub">'+(showMonth?monthShort(f.month)+' · ':'')+'Due '+fmtShort(f.dueDate)+(st.overdue?' · '+st.late+(st.late===1?' day':' days')+' late':'')+'</div></div>'
+    +'<div class="row-end"><b class="amt">'+inr(st.remaining)+'</b></div></div>';
+}
+
+/* ---------- screens ---------- */
+const Scr={};
+function screen(){
+  if(UI.sub&&UI.sub.type==='student')return Scr.student(UI.sub.id);
+  if(UI.sub&&UI.sub.type==='class')return Scr.classDetail(UI.sub.key);
+  return Scr[UI.tab];
+}
+
+/* Dashboard */
+function notices(){
+  const lb=S.settings.lastBackup,age=lb?diffDays(lb,TODAY):null,legacy=S.students.filter(isLegacyClass).length;
+  if(legacy)
+    return '<div class="note">'+legacy+(legacy===1?' student is':' students are')+' in a class that is no longer offered. Open each one and choose a class from PG to Class 8. <button class="link" data-act="showLegacy">Show them</button></div>'
+      +(MODE==='local'?'<div class="note">Saved on this device only. <button class="link" data-act="backup">Download backup</button></div>':'');
+  if(MODE==='local')
+    return '<div class="note">Saved on this device only. '+(lb?'Last backup: '+fmtLong(lb)+'.':'No backup yet.')+' <button class="link" data-act="backup">Download backup</button></div>';
+  if(S.students.length&&(age===null||age>30))
+    return '<div class="note info">'+(lb?'Your last backup was '+age+' days ago.':'You have not downloaded a backup yet.')+' <button class="link" data-act="backup">Download backup</button></div>';
+  return '';
+}
+Scr.dash={
+  head:()=>'<p class="tag">“'+TAGLINE+'”</p>',
+  body(){
+    if(!S.students.length)return emptyStudents();
+    const cur=TODAY.slice(0,7),soon=SOON();
+    const sm=summarize(feesFor(cur),TODAY,soon);
+    const live=D.fees.filter(f=>D.byId.has(f.studentId));
+    const all=summarize(live,TODAY,soon);
+    const earlier=sumBy(live.filter(f=>f.month<cur),f=>feeStatus(f,TODAY,soon).remaining);
+    const active=S.students.filter(s=>s.active!==false).length;
+    const pct=sm.expected?Math.min(100,Math.round(sm.received/sm.expected*100)):0;
+    const al=buildAlerts(S.students,TODAY,soon);
+    const overdue=al.filter(a=>a.kind===0),dueSoon=al.filter(a=>a.kind>0);
+    const paid=sorted(feesFor(cur).map(withSt).filter(x=>x.st.status==='paid'&&x.f.amount>0),(a,b)=>(lastPayDate(b.f)||'').localeCompare(lastPayDate(a.f)||''));
+    const grp=(tone,label,n,amt)=>'<h2 class="grp"><i class="dot '+tone+'"></i>'+label+'<span class="cnt">'+n+'</span>'+(amt!=null?'<span class="grp-amt">'+inr(amt)+'</span>':'')+'</h2>';
+    const aRow=a=>'<div class="row" role="button" tabindex="0" data-act="openFee" '+attrs(a.s,a.fee.month)+'>'
+      +'<div class="row-main"><div class="row-title">'+esc(a.msg)+'</div><div class="row-sub">'+esc(classLabel(a.s))+' · '+esc(a.detail)+'</div></div>'
+      +'<div class="row-end">'+payBtn(a.s,a.fee.month)+'</div></div>';
+    const pRow=x=>{const lp=lastPayment(x.f);return '<div class="row" role="button" tabindex="0" data-act="openFee" '+attrs(x.s,x.f.month)+'>'
+      +'<div class="row-main"><div class="row-title">'+esc(x.s.name)+' – '+inr(x.f.amount)+'</div><div class="row-sub">'+esc(classLabel(x.s))+(lp?' · Paid '+fmtShort(lp.date)+' · '+esc(lp.mode):'')+'</div></div>'
+      +'<div class="row-end">'+badge(x.st)+'</div></div>';};
+    let h=notices();
+    h+='<div class="tiles">'
+      +tile('Total students',active,S.students.length>active?(S.students.length-active)+' inactive':'')
+      +tile('Expected this month',inr(sm.expected),monthLabel(cur))
+      +tile('Received this month',inr(sm.received),sm.paidN+' of '+sm.count+' fully paid','ok')
+      +tile('Pending fees',inr(sm.pending),earlier>0?'+ '+inr(earlier)+' overdue from earlier months':'This month',sm.pending>0?'bad':'')
+      +tile('Fees due soon',all.soonN,all.soonN?inr(all.soonAmt)+' in the next '+soon+' days':'Nothing due in '+soon+' days',all.soonN?'warn':'')
+      +tile('Students with pending fees',all.pendingStudents,all.pendingStudents?'Tap a name below to collect':'Everyone is up to date')
+      +'</div>';
+    h+='<div class="prog"><div class="prog-t"><span>Collected this month</span><b>'+pct+'%</b></div><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct+'"><i style="width:'+pct+'%"></i></div></div>';
+    h+=grp('bad','Overdue',overdue.length,sumBy(overdue,a=>a.st.remaining));
+    h+=overdue.length?listOf(overdue.map(aRow)):'<div class="none">No overdue fees.</div>';
+    h+=grp('warn','Due soon',dueSoon.length,sumBy(dueSoon,a=>a.st.remaining));
+    h+=dueSoon.length?listOf(dueSoon.map(aRow)):'<div class="none">Nothing due in the next '+soon+' days.</div>';
+    h+=grp('ok','Paid this month',paid.length,sumBy(paid,x=>x.st.paid));
+    if(paid.length){
+      const shown=UI.paidAll?paid:paid.slice(0,5);
+      h+=listOf(shown.map(pRow));
+      if(paid.length>5)h+='<button class="btn btn-ghost more" data-act="paidAll">'+(UI.paidAll?'Show fewer':'Show all '+paid.length)+'</button>';
+    }else h+='<div class="none">No payments yet for '+monthLabel(cur)+'.</div>';
+    return h;
+  }
+};
+
+/* Students */
+Scr.students={
+  head(){
+    const F=UI.f.students,counts={};
+    S.students.forEach(s=>{const k=classKey(s);counts[k]=(counts[k]||0)+1;});
+    const legacy=counts['']||0;
+    return '<div class="search two"><input id="q_students" type="search" placeholder="Search students" value="'+esc(F.q)+'" data-in="q" autocomplete="off" aria-label="Search students">'
+      +'<select id="stu_batch" data-chg="stuBatch" aria-label="Filter by batch"><option value="all">All batches</option>'
+      +batches().map(b=>'<option value="'+esc(b.id)+'"'+(F.batch===b.id?' selected':'')+'>'+esc(batchText(b))+'</option>').join('')
+      +'<option value="none"'+(F.batch==='none'?' selected':'')+'>No batch</option></select></div>'
+      +'<div class="chips" role="group" aria-label="Filter by class">'
+      +chip('clsFilter','all','All',F.cls==='all',S.students.length)
+      +CLASSES.map(c=>chip('clsFilter',c,clsName(c),F.cls===c,counts[c]||0)).join('')
+      +(legacy?chip('clsFilter','_','Old class',F.cls==='_',legacy):'')+'</div>';
+  },
+  body(){
+    if(!S.students.length)return emptyStudents();
+    const F=UI.f.students,cur=TODAY.slice(0,7);
+    const list=sorted(S.students.filter(s=>matchStudent(s,F.q,batchLabel(s))
+        &&(F.cls==='all'||(F.cls==='_'?isLegacyClass(s):classKey(s)===F.cls))
+        &&(F.batch==='all'||(F.batch==='none'?!batchOf(s):s.batchId===F.batch))),
+      (a,b)=>(a.active===false)-(b.active===false)||CLASSES.indexOf(classKey(a))-CLASSES.indexOf(classKey(b))||a.name.localeCompare(b.name));
+    if(!list.length)return '<div class="none big">No students match your search.</div>';
+    return listOf(list.map(s=>{
+      const f=D.key.get(s.id+'|'+cur),st=f?feeStatus(f,TODAY,SOON()):null,b=batchOf(s);
+      return '<div class="row'+(s.active===false?' dim':'')+'" role="button" tabindex="0" data-act="openStudent" data-sid="'+esc(s.id)+'">'
+        +'<div class="row-main"><div class="row-title"><span class="nm">'+esc(s.name)+'</span>'+pill(classLabel(s))+(s.active===false?pill('Inactive'):'')+'</div>'
+        +'<div class="row-sub">'+esc(s.parent||'No parent name')+(s.mobile?' · '+esc(s.mobile):'')+'</div>'
+        +(b?'<div class="row-sub">'+esc(batchText(b))+'</div>':'')+'</div>'
+        +'<div class="row-end"><b class="amt">'+inr(s.monthlyFee)+'</b>'+(st?badge(st):'')+'</div></div>';
+    }));
+  }
+};
+
+/* One student */
+Scr.student=function(id){
+  const s=sget(id);
+  return {
+    head:()=>'',
+    body(){
+      if(!s)return '<div class="none big">This student was removed.</div>';
+      const fees=sorted(D.bySt.get(s.id)||[],(a,b)=>b.month.localeCompare(a.month)).map(withSt);
+      const tPaid=sumBy(fees,x=>x.st.paid),tPend=sumBy(fees,x=>x.st.remaining),tOver=sumBy(fees,x=>x.st.overdue?x.st.remaining:0);
+      const pays=[];
+      fees.forEach(x=>x.f.payments.forEach(p=>pays.push({p,f:x.f})));
+      pays.sort((a,b)=>b.p.date.localeCompare(a.p.date)||b.p.id.localeCompare(a.p.id));
+      const wa=s.mobile?waLink(s.mobile,'Hello'+(s.parent?' '+s.parent:'')+','):'';
+      let h='<div class="card info-card"><dl class="kv">'
+        +'<dt>Class</dt><dd>'+esc(classLabel(s))+(s.active===false?' '+pill('Inactive'):'')+'</dd>'
+        +'<dt>Batch</dt><dd>'+(batchOf(s)?esc(batchText(batchOf(s))):'Not assigned')+'</dd>'
+        +'<dt>Parent</dt><dd>'+esc(s.parent||'Not added')+'</dd>'
+        +'<dt>Mobile</dt><dd>'+(s.mobile?'<span class="sel">'+esc(s.mobile)+'</span><span class="inline-acts"><button class="mini" data-act="copy" data-v="'+esc(s.mobile)+'">Copy</button>'+(wa?'<a class="mini" href="'+esc(wa)+'" target="_blank" rel="noopener">WhatsApp</a>':'')+'</span>':'Not added')+'</dd>'
+        +'<dt>Monthly fee</dt><dd>'+inr(s.monthlyFee)+'</dd>'
+        +'<dt>Due date</dt><dd>'+ordinal(s.dueDay||10)+' of every month</dd>'
+        +'<dt>Joined</dt><dd>'+(s.joinDate?fmtLong(s.joinDate)+' '+s.joinDate.slice(0,4):'—')+'</dd>'
+        +(s.notes?'<dt>Notes</dt><dd class="notes">'+esc(s.notes)+'</dd>':'')
+        +'</dl></div>';
+      h+='<div class="tiles three">'+tile('Total paid',inr(tPaid),'','ok')+tile('Total pending',inr(tPend),'',tPend>0?'warn':'')+tile('Total overdue',inr(tOver),'',tOver>0?'bad':'')+'</div>';
+      h+='<div class="actions3"><button class="btn btn-ghost" data-act="editStudent" data-sid="'+esc(s.id)+'">Edit</button>'
+        +'<button class="btn btn-ghost" data-act="toggleActive" data-sid="'+esc(s.id)+'">'+(s.active===false?'Mark active':'Mark inactive')+'</button>'
+        +'<button class="btn btn-danger-ghost" data-act="askDeleteStudent" data-sid="'+esc(s.id)+'">Delete</button></div>';
+      h+='<h2 class="sec">Fee history</h2>';
+      h+=fees.length?listOf(fees.map(x=>feeRow(x,'month'))):'<div class="none">No fee records yet. The first one is created automatically.</div>';
+      h+='<h2 class="sec">Payment history</h2>';
+      h+=pays.length?listOf(pays.map(x=>'<div class="row" role="button" tabindex="0" data-act="receipt" '+attrs(s,x.f.month)+' data-pid="'+esc(x.p.id)+'">'
+        +'<div class="row-main"><div class="row-title">'+fmtLong(x.p.date)+' '+x.p.date.slice(0,4)+'</div><div class="row-sub">'+monthLabel(x.f.month)+' fee · '+esc(x.p.mode)+(x.p.notes?' · '+esc(x.p.notes):'')+'</div></div>'
+        +'<div class="row-end"><b class="amt">'+inr(x.p.amount)+'</b><span class="row-note">Receipt</span></div></div>')):'<div class="none">No payments recorded yet.</div>';
+      return h;
+    }
+  };
+};
+
+/* Fees */
+const STATUS_TESTS={
+  all:()=>true,
+  paid:x=>x.st.status==='paid',
+  pending:x=>x.st.status==='pending',
+  overdue:x=>x.st.overdue,
+  soon:x=>x.st.dueSoon,
+  partial:x=>x.st.status==='partial'
+};
+const STATUS_LABELS=[['all','All'],['paid','Paid'],['pending','Pending'],['overdue','Overdue'],['soon','Due soon'],['partial','Partially Paid']];
+function feeBase(){
+  const F=UI.f.fees;
+  return feesFor(UI.month).map(withSt).filter(x=>matchStudent(x.s,F.q,batchLabel(x.s))&&(F.cls==='all'||classKey(x.s)===F.cls));
+}
+function statusChips(){
+  const base=feeBase(),cur=UI.f.fees.status;
+  return STATUS_LABELS.map(p=>chip('statusFilter',p[0],p[1],cur===p[0],base.filter(STATUS_TESTS[p[0]]).length)).join('');
+}
+function feeRank(x){const st=x.st;return st.status==='paid'?5:st.overdue?0:st.dueToday?1:st.dueSoon?2:3;}
+Scr.fees={
+  head(){
+    const F=UI.f.fees;
+    return monthNav()
+      +'<div class="search two"><input id="q_fees" type="search" placeholder="Search students" value="'+esc(F.q)+'" data-in="q" autocomplete="off" aria-label="Search fees">'
+      +'<select id="fees_cls" data-chg="feesCls" aria-label="Filter by class"><option value="all">All classes</option>'
+      +CLASSES.map(c=>'<option value="'+c+'"'+(F.cls===c?' selected':'')+'>'+(clsName(c))+'</option>').join('')+'</select></div>'
+      +'<div class="chips" id="chips" role="group" aria-label="Filter by status">'+statusChips()+'</div>';
+  },
+  body(){
+    const F=UI.f.fees;
+    const list=sorted(feeBase().filter(STATUS_TESTS[F.status]),(a,b)=>feeRank(a)-feeRank(b)||a.f.dueDate.localeCompare(b.f.dueDate)||a.s.name.localeCompare(b.s.name));
+    const all=feesFor(UI.month);
+    if(!all.length)return '<div class="none big">No fee records for '+monthLabel(UI.month)+'.</div>';
+    if(!list.length)return '<div class="none big">No fees match these filters.</div>';
+    const sm=summarize(list.map(x=>x.f),TODAY,SOON());
+    return '<div class="strip"><div><span>Collected</span><b class="c-ok">'+inr(sm.received)+'</b></div><div><span>Remaining</span><b class="'+(sm.pending?'c-bad':'')+'">'+inr(sm.pending)+'</b></div><div><span>Records</span><b>'+list.length+'</b></div></div>'
+      +listOf(list.map(x=>feeRow(x,'student')));
+  }
+};
+
+/* Classes */
+Scr.classes={
+  head:()=>monthNav(),
+  body(){
+    if(!S.students.length)return emptyStudents();
+    const tot=classTotals(S.students,UI.month,TODAY,SOON());
+    return '<div class="cgrid">'+CLASSES.map(c=>{
+      const t=tot[c],pct=t.expected?Math.min(100,Math.round(t.received/t.expected*100)):0;
+      return '<button class="ctile" data-act="openClass" data-v="'+c+'"><div class="ct-h">'+(clsName(c))+'</div>'
+        +'<div class="ct-n">'+t.n+(t.n===1?' student':' students')+'</div>'
+        +'<div class="bar sm"><i style="width:'+pct+'%"></i></div>'
+        +'<div class="ct-m">'+inr(t.received)+' <span>of '+inr(t.expected)+'</span></div></button>';
+    }).join('')+'</div>';
+  }
+};
+Scr.classDetail=function(key){
+  return {
+    head:()=>monthNav(),
+    body(){
+      const xs=sorted(feesFor(UI.month).map(withSt).filter(x=>classKey(x.s)===key),(a,b)=>a.s.name.localeCompare(b.s.name));
+      const sm=summarize(xs.map(x=>x.f),TODAY,SOON());
+      let h='<div class="tiles">'+tile('Students',xs.length)+tile('Expected fees',inr(sm.expected))+tile('Collected fees',inr(sm.received),'','ok')+tile('Pending fees',inr(sm.pending),'',sm.pending>0?'bad':'')+'</div>';
+      h+=xs.length?listOf(xs.map(x=>feeRow(x,'student'))):'<div class="none big">No students in this class for '+monthLabel(UI.month)+'.</div>';
+      return h;
+    }
+  };
+};
+
+/* Reports */
+Scr.reports={
+  head:()=>monthNav(),
+  body(){
+    if(!S.students.length)return emptyStudents();
+    const soon=SOON(),m=UI.month;
+    const xs=feesFor(m).map(withSt);
+    const sm=summarize(xs.map(x=>x.f),TODAY,soon);
+    const pct=sm.expected?Math.min(100,Math.round(sm.received/sm.expected*100)):0;
+    const tr=trend(S.students,m,6,TODAY,soon),mx=Math.max(1,...tr.map(r=>r.expected));
+    const pend=sorted(xs.filter(x=>x.st.remaining>0&&!x.st.overdue),(a,b)=>a.f.dueDate.localeCompare(b.f.dueDate)||a.s.name.localeCompare(b.s.name));
+    const over=sorted(D.fees.filter(f=>D.byId.has(f.studentId)).map(withSt).filter(x=>x.st.overdue),(a,b)=>b.st.late-a.st.late||a.s.name.localeCompare(b.s.name));
+    const tot=classTotals(S.students,m,TODAY,soon);
+    const students=sorted(S.students,(a,b)=>a.name.localeCompare(b.name));
+    const rs=UI.rep&&D.byId.has(UI.rep)?UI.rep:'';
+    let h='<h2 class="sec first">Fee collection · '+monthLabel(m)+'</h2>';
+    h+='<div class="tiles">'+tile('Expected',inr(sm.expected))+tile('Collected',inr(sm.received),pct+'% of expected','ok')+tile('Pending',inr(sm.pending),'',sm.pending>0?'warn':'')+tile('Overdue',inr(sm.overdueAmt),sm.overdueN+(sm.overdueN===1?' record':' records'),sm.overdueAmt>0?'bad':'')+'</div>';
+    h+='<div class="card"><div class="trend" role="img" aria-label="Collected versus expected fees for the last six months">'
+      +tr.map(r=>{const hh=Math.max(r.expected?6:2,Math.round(r.expected/mx*100)),fill=r.expected?Math.min(100,Math.round(r.received/r.expected*100)):0;
+        return '<div class="tcol"><div class="tval">'+compact(r.received)+'</div><div class="tbar" style="height:'+hh+'px"><i style="height:'+fill+'%"></i></div><div class="tmon'+(r.month===m?' cur':'')+'">'+monthShort(r.month)+'</div></div>';}).join('')
+      +'</div><div class="legend"><span><i class="lg lg-a"></i>Collected</span><span><i class="lg lg-b"></i>Expected</span></div></div>';
+    h+='<h2 class="sec">Class-wise collection</h2><div class="card">'+CLASSES.filter(c=>tot[c].n>0).map(c=>{
+      const t=tot[c],p=t.expected?Math.min(100,Math.round(t.received/t.expected*100)):0;
+      return '<div class="cw"><div class="cw-h"><b>'+(clsName(c))+'</b><span>'+inr(t.received)+' of '+inr(t.expected)+'</span></div><div class="bar"><i style="width:'+p+'%"></i></div></div>';
+    }).join('')||'<div class="none">No fee records for this month.</div>';
+    h+='</div>';
+    h+='<h2 class="sec">Pending fees · '+monthLabel(m)+'</h2>'+(pend.length?listOf(pend.map(x=>amtRow(x,false))):'<div class="none">Nothing pending.</div>');
+    h+='<h2 class="sec">Overdue fees · all months</h2>'+(over.length?listOf(over.map(x=>amtRow(x,true))):'<div class="none">Nothing overdue.</div>');
+    h+='<h2 class="sec">Student-wise payment history</h2><div class="fld"><label for="rep_student">Student</label><select id="rep_student" data-chg="repStudent"><option value="">Choose a student</option>'
+      +students.map(s=>'<option value="'+esc(s.id)+'"'+(rs===s.id?' selected':'')+'>'+esc(s.name)+' · '+esc(classLabel(s))+'</option>').join('')+'</select></div>';
+    if(rs){
+      const s=sget(rs),fs=D.bySt.get(rs)||[],pays=[];
+      fs.forEach(f=>f.payments.forEach(p=>pays.push({p,f})));
+      pays.sort((a,b)=>b.p.date.localeCompare(a.p.date));
+      h+=pays.length?listOf(pays.map(x=>'<div class="row" role="button" tabindex="0" data-act="receipt" '+attrs(s,x.f.month)+' data-pid="'+esc(x.p.id)+'"><div class="row-main"><div class="row-title">'+fmtLong(x.p.date)+' '+x.p.date.slice(0,4)+'</div><div class="row-sub">'+monthLabel(x.f.month)+' · '+esc(x.p.mode)+'</div></div><div class="row-end"><b class="amt">'+inr(x.p.amount)+'</b></div></div>'))
+        +'<div class="strip one"><div><span>Total paid</span><b class="c-ok">'+inr(sumBy(pays,x=>+x.p.amount))+'</b></div></div>':'<div class="none">No payments recorded for '+esc(s.name)+'.</div>';
+    }
+    h+='<h2 class="sec">Download</h2><div class="stack">'
+      +'<button class="btn btn-ghost" data-act="exportCsv" data-v="ledger">Fee ledger · '+monthLabel(m)+' (CSV)</button>'
+      +'<button class="btn btn-ghost" data-act="exportCsv" data-v="pending">Pending and overdue fees (CSV)</button>'
+      +'<button class="btn btn-ghost" data-act="exportCsv" data-v="payments">All payments (CSV)</button>'
+      +'<button class="btn btn-ghost" data-act="exportCsv" data-v="students">Student list (CSV)</button>'
+      +'<button class="btn btn-primary" data-act="backup">Full backup (JSON)</button></div>'
+      +'<p class="hint pad">CSV files open in Excel and Google Sheets.</p>';
+    return h;
+  }
+};
+
+/* ---------- render pipeline ---------- */
+function renderTop(){
+  const sub=UI.sub;
+  let title='Dashboard',eyebrow=TUI(),back=false;
+  if(sub&&sub.type==='student'){const s=sget(sub.id);title=s?s.name:'Student';eyebrow=s?classLabel(s):'';back=true;}
+  else if(sub&&sub.type==='class'){title=clsName(sub.key);eyebrow='Classes';back=true;}
+  else{title={dash:'Dashboard',students:'Students',fees:'Fees',classes:'Classes',reports:'Reports'}[UI.tab];if(UI.tab==='dash'){eyebrow=weekday(TODAY)+', '+fmtLong(TODAY);title=TUI();}}
+  $('#top').innerHTML='<div class="wrap top-in">'+(back?'<button class="icon-btn" data-act="back" aria-label="Back">'+icon('back')+'</button>':'')
+    +'<div class="top-t"><div class="eyebrow">'+esc(eyebrow)+'</div><h1><span>'+esc(title)+'</span></h1></div>'
+    +'<button class="icon-btn" data-act="settings" aria-label="Settings, batches and backup">'+icon('gear')+'</button></div>';
+}
+function renderNav(){
+  const tabs=[['dash','Dashboard'],['students','Students'],['fees','Fees'],['classes','Classes'],['reports','Reports']];
+  $('#nav').innerHTML='<div class="nav-in">'+tabs.map(t=>'<button data-act="tab" data-v="'+t[0]+'"'+(UI.tab===t[0]&&!UI.sub?' aria-current="page"':(UI.tab===t[0]?' aria-current="true"':''))+'><span class="ic-wrap">'+icon(t[0])+'</span>'+t[1]+'</button>').join('')+'</div>';
+  $('#fab').hidden=!(S.loaded&&UI.tab==='students'&&!UI.sub);
+}
+function renderHd(){
+  const hd=$('#hd');
+  if(!hd)return;
+  try{const sc=screen();hd.innerHTML=sc.head?sc.head():'';}catch(e){console.error(e);hd.innerHTML='';}
+}
+function renderBody(){
+  if(!S.loaded)return;
+  const bd=$('#bd');
+  if(!bd)return;
+  try{bd.innerHTML=screen().body();}
+  catch(e){console.error(e);bd.innerHTML='<div class="none big">Something went wrong showing this screen. Try another tab, then come back.</div>';}
+}
+function renderView(){
+  const v=$('#view');
+  if(!S.loaded){v.innerHTML='<div class="loading"><div class="wordmark sm" aria-label="Kids Tuition Classes"><span class="wm-a">Kids</span><span class="wm-b">Tuition Classes</span></div><div class="spin"></div>Opening your register…</div>';return;}
+  v.innerHTML='<div id="hd"></div><div id="bd"></div>';
+  renderHd();renderBody();
+}
+function renderAll(){renderTop();renderNav();renderView();}
+function go(tab,sub){
+  UI.tab=tab;UI.sub=sub||null;
+  renderAll();
+  window.scrollTo(0,0);
+}
+
+/* ---------- receipt picture and PDF ----------
+   The receipt is drawn on a canvas (A5 proportions, 10 pixels per millimetre) with the app's own fonts, so rupee signs and Hindi names print correctly.
+   The same picture is shown on screen and placed on a one-page A5 PDF. */
+const RC={W:1480,H:2100,ORANGE:'#FF6A00',TEAL:'#07979A',TEAL_D:'#056E70',YELLOW:'#F9C800',INK:'#1E1611',MUTED:'#6B5645',CREAM:'#FFF4E6',GREEN:'#0E7A45',GREEN_SOFT:'#DDF3E8',AMBER:'#8F4200',AMBER_SOFT:'#FFE3BF'};
+/* Font templates: "%" is replaced by the size in pixels. */
+const FD="400 % 'Chewy','Baloo 2',system-ui,sans-serif",fb=w=>w+" % 'Baloo 2','Mukta',system-ui,sans-serif";
+
+async function loadReceiptFonts(){
+  if(!(document.fonts&&document.fonts.load))return;
+  const sample='Kids Tuition ₹0123456789 अआ';
+  const jobs=['400 60px "Chewy"','500 40px "Baloo 2"','600 40px "Baloo 2"','700 40px "Baloo 2"'].map(f=>document.fonts.load(f,sample).catch(()=>{}));
+  await Promise.race([Promise.all(jobs),sleep(2500)]);
+}
+function loadImage(src){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>rej(new Error('image'));im.src=src;});}
+function rcSlant(g,x,y,w,h,skew,fill){
+  g.beginPath();g.moveTo(x+skew,y);g.lineTo(x+w,y);g.lineTo(x+w-skew,y+h);g.lineTo(x,y+h);g.closePath();
+  g.fillStyle=fill;g.fill();
+}
+function rcRound(g,x,y,w,h,r){
+  g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath();
+}
+function rcFit(g,text,font,size,maxW){
+  let s=size;
+  for(;s>20;s-=2){g.font=font.replace('%',s+'px');if(g.measureText(text).width<=maxW)break;}
+  g.font=font.replace('%',s+'px');
+  return s;
+}
+function rcText(g,t,x,y,font,size,color,align,maxW){
+  g.fillStyle=color;g.textAlign=align||'left';g.textBaseline='alphabetic';
+  if(maxW)rcFit(g,t,font,size,maxW);else g.font=font.replace('%',size+'px');
+  g.fillText(t,x,y);
+}
+
+async function renderReceipt(c){
+  await loadReceiptFonts();
+  const W=RC.W,H=RC.H,cv=document.createElement('canvas');
+  cv.width=W;cv.height=H;
+  const g=cv.getContext('2d');
+  g.fillStyle='#fff';g.fillRect(0,0,W,H);
+
+  /* header band: orange with the banner's corner circles, teal and yellow ribbons */
+  g.fillStyle=RC.ORANGE;g.fillRect(0,0,W,520);
+  g.fillStyle=RC.TEAL;g.beginPath();g.arc(70,0,250,0,Math.PI*2);g.fill();
+  g.fillStyle=RC.YELLOW;g.beginPath();g.arc(20,150,140,0,Math.PI*2);g.fill();
+  g.strokeStyle=RC.INK;g.lineWidth=7;
+  for(let i=0;i<4;i++){g.beginPath();g.arc(1000+i*62,64,15,0,Math.PI*2);g.stroke();}
+  const words=(c.tuition||'Kids Tuition Classes').trim().split(/\s+/);
+  const last=words.length>1?words.pop():'',first=words.join(' ');
+  const top1=last?first:c.tuition,top2=last;
+  rcSlant(g,370,110,740,160,34,RC.TEAL);
+  rcText(g,top1,370+34+(740-34)/2,222,FD,100,'#fff','center',640);
+  if(top2){
+    rcSlant(g,470,290,540,140,30,RC.YELLOW);
+    rcText(g,top2,470+30+(540-30)/2,394,FD,96,RC.INK,'center',450);
+  }
+  g.lineWidth=0;
+
+  /* tagline */
+  rcText(g,'“'+TAGLINE+'”',W/2,600,FD,50,RC.INK,'center',W-140);
+
+  /* title row */
+  rcSlant(g,80,700,540,30,10,RC.YELLOW);
+  rcText(g,'FEE RECEIPT',90,740,FD,92,RC.INK,'left');
+  rcText(g,'Receipt No.',W-90,690,fb(500),34,RC.MUTED,'right');
+  rcText(g,c.no,W-90,752,fb(700),64,RC.TEAL_D,'right');
+  rcText(g,'Date: '+c.issued,W-90,808,fb(600),38,RC.INK,'right');
+
+  /* details */
+  const rows=[['Student Name',c.student],['Class',c.cls],['Parent / Guardian',c.parent],['Fee Month',c.month],['Payment Date',c.payDate],['Payment Mode',c.mode],['Payment Status',c.status]];
+  const x0=90,w0=W-180,rh=92,y0=860;
+  g.fillStyle=RC.CREAM;rcRound(g,x0,y0,w0,rh*rows.length,26);g.fill();
+  g.save();rcRound(g,x0,y0,w0,rh*rows.length,26);g.clip();
+  rows.forEach((r,i)=>{if(i%2===1){g.fillStyle='#FFE8CC';g.fillRect(x0,y0+i*rh,w0,rh);}});
+  g.restore();
+  g.lineWidth=7;g.strokeStyle=RC.INK;rcRound(g,x0,y0,w0,rh*rows.length,26);g.stroke();
+  rows.forEach((r,i)=>{
+    const by=y0+i*rh+rh/2+14;
+    rcText(g,r[0],x0+44,by,fb(600),36,RC.MUTED,'left');
+    if(r[0]==='Payment Status'){
+      const paid=r[1]==='Paid',txt=r[1];
+      g.font=fb(700).replace('%','40px');const tw=g.measureText(txt).width+56;
+      g.fillStyle=paid?RC.GREEN_SOFT:RC.AMBER_SOFT;rcRound(g,x0+w0-44-tw,y0+i*rh+16,tw,rh-32,30);g.fill();
+      rcText(g,txt,x0+w0-44-tw/2,by,fb(700),40,paid?RC.GREEN:RC.AMBER,'center');
+    }else rcText(g,r[1]||'—',x0+w0-44,by,fb(700),42,RC.INK,'right',w0-440);
+  });
+
+  /* amount */
+  const ay=y0+rh*rows.length+50;
+  rcSlant(g,80,ay,W-160,170,26,RC.YELLOW);
+  g.lineWidth=7;g.strokeStyle=RC.INK;g.beginPath();g.moveTo(106,ay);g.lineTo(W-80,ay);g.lineTo(W-106,ay+170);g.lineTo(80,ay+170);g.closePath();g.stroke();
+  rcText(g,'Amount Paid',150,ay+104,fb(700),46,RC.INK,'left');
+  rcText(g,inr(c.amount),W-150,ay+120,FD,104,RC.INK,'right',700);
+  if(c.balance>0)rcText(g,'Balance due: '+inr(c.balance),W/2,ay+232,fb(700),42,RC.AMBER,'center');
+
+  /* footer: teacher, qualifications, phone ribbon */
+  const fy=1862;
+  if(c.teacher)rcText(g,c.teacher,W/2,fy,FD,62,RC.INK,'center',900);
+  if(c.qual)rcText(g,c.qual,W/2,fy+48,fb(600),38,RC.TEAL_D,'center',900);
+  if(c.phone){rcSlant(g,W/2-330,fy+68,660,84,20,RC.YELLOW);rcText(g,c.phone,W/2,fy+128,fb(700),50,RC.INK,'center',560);}
+  rcText(g,'This is a computer-generated receipt. Thank you!',W/2,H-34,fb(500),30,RC.MUTED,'center');
+
+  /* bottom-right corner circles, as on the banner */
+  g.fillStyle=RC.TEAL;g.beginPath();g.arc(W,H,190,0,Math.PI*2);g.fill();
+  g.fillStyle=RC.YELLOW;g.beginPath();g.arc(W-30,H+30,110,0,Math.PI*2);g.fill();
+  return cv;
+}
+async function receiptImage(c){
+  const cv=await renderReceipt(c);
+  const blob=await new Promise(res=>cv.toBlob(res,'image/jpeg',0.92));
+  return {blob,url:cv.toDataURL('image/jpeg',0.8),w:cv.width,h:cv.height};
+}
+
+/* A one-page A5 PDF that holds the receipt picture (JPEG stored as it is). No library needed. */
+function pdfFromJpeg(bytes,pxW,pxH,title){
+  const enc=s=>new TextEncoder().encode(s),W=419.53,H=595.28,parts=[],offs=[];
+  let len=0;
+  const push=b=>{parts.push(b);len+=b.length;};
+  const obj=(n,body)=>{offs[n]=len;push(enc(n+' 0 obj\n'+body+'\nendobj\n'));};
+  push(enc('%PDF-1.4\n'));
+  obj(1,'<< /Type /Catalog /Pages 2 0 R >>');
+  obj(2,'<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
+  obj(3,'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+W+' '+H+'] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>');
+  offs[4]=len;
+  push(enc('4 0 obj\n<< /Type /XObject /Subtype /Image /Width '+pxW+' /Height '+pxH+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+bytes.length+' >>\nstream\n'));
+  push(bytes);
+  push(enc('\nendstream\nendobj\n'));
+  const content='q '+W+' 0 0 '+H+' 0 0 cm /Im0 Do Q';
+  obj(5,'<< /Length '+content.length+' >>\nstream\n'+content+'\nendstream');
+  obj(6,'<< /Title ('+String(title||'Fee receipt').replace(/[^\x20-\x7E]/g,'').replace(/[()\\]/g,'')+') /Producer (Kids Tuition Classes app) >>');
+  const xref=len;
+  let x='xref\n0 7\n0000000000 65535 f \n';
+  for(let i=1;i<=6;i++)x+=String(offs[i]).padStart(10,'0')+' 00000 n \n';
+  push(enc(x+'trailer\n<< /Size 7 /Root 1 0 R /Info 6 0 R >>\nstartxref\n'+xref+'\n%%EOF\n'));
+  return new Blob(parts,{type:'application/pdf'});
+}
+async function receiptPdf(c){
+  const r=await receiptImage(c);
+  return pdfFromJpeg(new Uint8Array(await r.blob.arrayBuffer()),r.w,r.h,'Fee receipt '+c.no);
+}
+
+/* ---------- sheets (bottom panels) ---------- */
+function sheet(title,html){
+  $('#sheetRoot').innerHTML='<div class="scrim" data-act="closeSheet"></div>'
+    +'<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" tabindex="-1">'
+    +'<div class="sheet-head"><h2 id="sheetTitle">'+esc(title)+'</h2><button class="icon-btn" data-act="closeSheet" aria-label="Close">'+icon('x')+'</button></div>'
+    +'<div class="sheet-body">'+html+'</div></div>';
+  document.body.classList.add('lock');
+  const el=$('#sheetRoot .sheet');
+  if(el)el.focus({preventScroll:true});
+}
+function closeSheet(){$('#sheetRoot').innerHTML='';document.body.classList.remove('lock');CONFIRM=null;}
+const fld=(id,label,input,hint)=>'<div class="fld"><label for="'+id+'">'+label+'</label>'+input+(hint?'<div class="hint">'+hint+'</div>':'')+'</div>';
+const busy=(f,on)=>f.querySelectorAll('button[type=submit]').forEach(b=>{b.disabled=on;});
+function showErr(id,t){const e=$('#'+id);if(e){e.textContent=t;e.hidden=false;}}
+
+function confirmSheet(o){
+  sheet(o.title,'<p class="msg">'+o.msg+'</p>'
+    +(o.check?'<label class="check"><input type="checkbox" id="cf_check" data-chg="cfCheck"><span>'+esc(o.check)+'</span></label>':'')
+    +'<div class="stack"><button class="btn '+(o.tone==='danger'?'btn-danger':'btn-primary')+'" id="cf_yes" data-act="confirmYes"'+(o.check?' disabled':'')+'>'+esc(o.label)+'</button>'
+    +(o.alt?'<button class="btn btn-ghost" data-act="confirmAlt">'+esc(o.alt.label)+'</button>':'')
+    +'<button class="btn btn-ghost" data-act="closeSheet">Cancel</button></div>');
+  CONFIRM=o;
+}
+
+/* Student form */
+function openStudentForm(id){
+  const s=id?sget(id):null;
+  const v=s||{name:'',cls:'',parent:'',mobile:'',monthlyFee:'',joinDate:TODAY,dueDay:10,notes:'',batchId:''};
+  const legacy=s&&isLegacyClass(s),bs=batches();
+  sheet(s?'Edit student':'Add student',
+    '<form data-form="student" data-id="'+esc(id||'')+'" novalidate autocomplete="off">'
+    +fld('sf_name','Student name','<input id="sf_name" name="name" value="'+esc(v.name)+'" placeholder="e.g. Aarav Sharma" autocapitalize="words">')
+    +fld('sf_cls','Class','<select id="sf_cls" name="cls"><option value="">Select class</option>'+CLASSES.map(c=>'<option value="'+c+'"'+(v.cls===c?' selected':'')+'>'+clsName(c)+'</option>').join('')+'</select>',legacy?'The old class ('+esc(classLabel(s))+') is no longer offered. Choose PG to Class 8.':'')
+    +fld('sf_batch','Batch / timing','<select id="sf_batch" name="batch"><option value="">No batch</option>'+bs.map(b=>'<option value="'+esc(b.id)+'"'+(v.batchId===b.id?' selected':'')+'>'+esc(batchText(b))+'</option>').join('')+'</select>',bs.length?'':'Add batch timings in Settings first.')
+    +fld('sf_parent','Parent or guardian name','<input id="sf_parent" name="parent" value="'+esc(v.parent)+'" autocapitalize="words">')
+    +fld('sf_mobile','Parent mobile number','<input id="sf_mobile" name="mobile" type="tel" inputmode="tel" value="'+esc(v.mobile)+'" placeholder="10-digit number">')
+    +fld('sf_fee','Monthly fee (₹)','<input id="sf_fee" name="fee" type="number" inputmode="numeric" min="0" step="1" value="'+esc(v.monthlyFee)+'" placeholder="2000">')
+    +fld('sf_due','Fee due on day','<input id="sf_due" name="due" type="number" inputmode="numeric" min="1" max="31" step="1" value="'+esc(v.dueDay)+'">','Due on this day every month. Shorter months use their last day.')
+    +fld('sf_join','Joining date','<input id="sf_join" name="join" type="date" value="'+esc(v.joinDate)+'">','Monthly fees start from the joining month, going back at most 2 months.')
+    +fld('sf_notes','Notes','<textarea id="sf_notes" name="notes" rows="2" placeholder="Optional">'+esc(v.notes)+'</textarea>')
+    +'<div class="err" id="sf_err" role="alert" hidden></div>'
+    +'<button class="btn btn-primary" type="submit">'+(s?'Save changes':'Add student')+'</button></form>');
+}
+
+/* Fee detail */
+function openFee(sidv,m){
+  const s=sget(sidv),f=D.key.get(sidv+'|'+m);
+  if(!s||!f)return;
+  const st=feeStatus(f,TODAY,SOON()),lp=lastPayment(f);
+  const pays=sorted(f.payments,(a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id));
+  const owing=st.remaining>0;
+  const wa=(owing&&s.mobile)?Messaging.prepare(Messaging.compose(s,f,st,TUI())):null;
+  const lr=(f.reminders||[]).slice(-1)[0];
+  const a=attrs(s,m);
+  let h='<div class="fee-h"><div><div class="nm">'+esc(s.name)+'</div><div class="row-sub">'+esc(classLabel(s))+' · '+monthLabel(m)+'</div></div>'+badge(st)+'</div>';
+  h+='<div class="tiles three">'+tile('Fee',inr(f.amount))+tile('Paid',inr(st.paid),'','ok')+tile('Remaining',inr(st.remaining),'',st.remaining>0?(st.overdue?'bad':'warn'):'')+'</div>';
+  h+='<dl class="kv tight"><dt>Due date</dt><dd>'+fmtDateFull(f.dueDate)+'</dd>'
+    +'<dt>Payment date</dt><dd>'+(lp?fmtDateFull(lp.date)+(lp.mode?' · '+esc(lp.mode):''):'Not paid yet')+'</dd>'
+    +(lr?'<dt>Last reminder</dt><dd>'+fmtLong(lr.date)+' · WhatsApp</dd>':'')
+    +(f.note?'<dt>Note</dt><dd class="notes">'+esc(f.note)+'</dd>':'')+'</dl>';
+  if(pays.length){
+    h+='<h3 class="sub-h">Payments</h3><div class="list">'+pays.map(p=>'<div class="prow"><div><b>'+inr(p.amount)+'</b> · '+esc(p.mode)+'<div class="row-sub">'+fmtDateFull(p.date)+' · '+esc(receiptNo(p))+(p.notes?' · '+esc(p.notes):'')+'</div></div>'
+      +'<div class="inline-acts"><button class="mini" data-act="receipt" '+a+' data-pid="'+esc(p.id)+'">Receipt</button><button class="mini danger" data-act="askDelPay" '+a+' data-pid="'+esc(p.id)+'">Delete</button></div></div>').join('')+'</div>';
+  }
+  h+='<div class="stack top-gap">';
+  if(owing)h+='<button class="btn btn-primary" data-act="pay" '+a+'>'+(st.paid>0?'Add payment':'Mark as Paid')+'</button>';
+  if(wa)h+='<a class="btn btn-wa" href="'+esc(wa.url)+'" target="_blank" rel="noopener" data-act="waSent" '+a+'>Send WhatsApp Reminder</a>';
+  else if(owing)h+='<div class="hint center">Add the parent’s mobile number to send WhatsApp reminders.</div>';
+  h+='<button class="btn btn-ghost" data-act="editFee" '+a+'>Edit fee amount or due date</button>';
+  if(!(UI.sub&&UI.sub.type==='student'&&UI.sub.id===s.id))h+='<button class="btn btn-ghost" data-act="openStudent" data-sid="'+esc(s.id)+'">Open student profile</button>';
+  h+='</div>';
+  sheet(monthLabel(m)+' fee',h);
+}
+function openFeeEdit(sidv,m){
+  const s=sget(sidv),f=D.key.get(sidv+'|'+m);
+  if(!s||!f)return;
+  sheet('Edit '+monthLabel(m)+' fee',
+    '<div class="sum"><b>'+esc(s.name)+'</b> · '+esc(classLabel(s))+'<div class="row-sub">Changes apply to this month only.</div></div>'
+    +'<form data-form="feeEdit" data-sid="'+esc(sidv)+'" data-m="'+m+'" novalidate>'
+    +fld('fe_amount','Fee for this month (₹)','<input id="fe_amount" name="amount" type="number" inputmode="numeric" min="0" step="1" value="'+f.amount+'">',paidOf(f)>0?'Already paid '+inr(paidOf(f))+'. The fee cannot go below this.':'')
+    +fld('fe_due','Due date','<input id="fe_due" name="due" type="date" value="'+f.dueDate+'">')
+    +fld('fe_note','Note','<input id="fe_note" name="note" value="'+esc(f.note)+'" placeholder="Optional, e.g. discount given">')
+    +'<div class="err" id="fe_err" role="alert" hidden></div><button class="btn btn-primary" type="submit">Save</button></form>');
+}
+
+/* Payment */
+const leftText=(rem,v)=>v>rem+0.001?'That is more than the '+inr(rem)+' due.':(rem-v>0.001?'Remaining after this payment: '+inr(rem-v):'This fee will be fully paid.');
+function openPay(sidv,m){
+  const s=sget(sidv),f=D.key.get(sidv+'|'+m);
+  if(!s||!f)return;
+  const st=feeStatus(f,TODAY,SOON());
+  if(st.remaining<=0){toast('This month is already paid.');openFee(sidv,m);return;}
+  const mode=lastMode();
+  sheet('Mark as paid',
+    '<div class="sum"><b>'+esc(s.name)+'</b> · '+esc(classLabel(s))+'<div class="row-sub">'+monthLabel(m)+' fee '+inr(f.amount)+(st.paid?' · already paid '+inr(st.paid):'')+'</div></div>'
+    +'<form data-form="pay" data-sid="'+esc(sidv)+'" data-m="'+m+'" data-rem="'+st.remaining+'" novalidate>'
+    +fld('pay_date','Payment date','<input id="pay_date" name="date" type="date" value="'+TODAY+'">')
+    +fld('pay_amount','Amount paid (₹)','<input id="pay_amount" name="amount" type="number" inputmode="decimal" min="1" step="any" value="'+st.remaining+'" data-in="payAmt">','<span id="pay_left" aria-live="polite">'+leftText(st.remaining,st.remaining)+'</span>')
+    +'<div class="fld"><div class="lbl" id="pm_l">Payment mode</div><div class="radios" role="radiogroup" aria-labelledby="pm_l">'
+    +MODES.map(x=>'<label><input type="radio" name="mode" value="'+x+'"'+(x===mode?' checked':'')+'><span>'+x+'</span></label>').join('')+'</div></div>'
+    +fld('pay_notes','Notes','<input id="pay_notes" name="notes" placeholder="Optional">')
+    +'<div class="err" id="pay_err" role="alert" hidden></div><button class="btn btn-primary" type="submit">Save payment</button></form>');
+}
+function openPaid(sidv,m,pid){
+  const s=sget(sidv),f=D.key.get(sidv+'|'+m);
+  if(!s||!f)return;
+  const p=f.payments.find(x=>x.id===pid),st=feeStatus(f,TODAY,SOON());
+  sheet('Payment saved',
+    '<div class="done"><div class="done-ic">'+'<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>'
+    +'<div class="done-t">'+inr(p?p.amount:0)+' received</div><div class="row-sub">'+esc(s.name)+' · '+monthLabel(m)+(p?' · '+esc(p.mode):'')+'</div>'+(p?'<div class="row-sub">Receipt '+esc(receiptNo(p))+'</div>':'')
+    +'<div class="done-s">'+(st.remaining>0?'Remaining: '+inr(st.remaining):'Fee fully paid')+'</div></div>'
+    +'<div class="stack"><button class="btn btn-primary" data-act="receipt" data-sid="'+esc(sidv)+'" data-m="'+m+'" data-pid="'+esc(pid)+'">Get receipt</button><button class="btn btn-ghost" data-act="closeSheet">Done</button></div>');
+}
+
+/* Receipt */
+function receiptCtx(s,f,p){
+  const info=receiptInfo(f,p);
+  return {tuition:TUI(),teacher:S.settings.teacherName||'',qual:S.settings.teacherQual||'',phone:S.settings.phone||'',
+    no:receiptNo(p),issued:fmtDateFull(p.issued||p.date),student:s.name,cls:classLabel(s),parent:s.parent||'—',month:monthLabel(f.month),
+    payDate:fmtDateFull(p.date),mode:p.mode,status:info.status,amount:+p.amount,balance:info.balance};
+}
+function rcLookup(el){
+  const s=sget(el.dataset.sid),f=D.key.get(el.dataset.sid+'|'+el.dataset.m),p=f&&f.payments.find(x=>x.id===el.dataset.pid);
+  return (s&&f&&p)?{s,f,p,c:receiptCtx(s,f,p)}:null;
+}
+function rcFileName(x){
+  const nm=x.s.name.replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  return 'Receipt-'+x.c.no+(nm?'-'+nm:'')+'-'+x.f.month+'.pdf';
+}
+async function openReceipt(sidv,m,pid){
+  const s=sget(sidv),f=D.key.get(sidv+'|'+m),p=f&&f.payments.find(x=>x.id===pid);
+  if(!s||!p)return;
+  const c=receiptCtx(s,f,p),a=attrs(s,m)+' data-pid="'+esc(pid)+'"';
+  const wa=s.mobile?waLink(s.mobile,receiptText(s,f,p,TUI())):'';
+  sheet('Fee receipt '+c.no,
+    '<img class="rc-img" id="rc_img" alt="Fee receipt '+esc(c.no)+' for '+esc(c.student)+'" width="148" height="210" hidden>'
+    +'<div class="rc-wait" id="rc_wait"><div class="spin"></div>Preparing receipt…</div>'
+    +'<div class="stack"><button class="btn btn-primary" data-act="rcPdf" '+a+'>Download PDF</button>'
+    +'<button class="btn btn-ghost" data-act="rcShare" '+a+'>Share PDF (WhatsApp, print…)</button>'
+    +(wa?'<a class="btn btn-ghost" href="'+esc(wa)+'" target="_blank" rel="noopener">Send receipt message on WhatsApp</a>':'')
+    +'<button class="btn btn-ghost" data-act="rcCopy" '+a+'>Copy receipt text</button></div>');
+  try{
+    const r=await receiptImage(c),img=$('#rc_img'),w=$('#rc_wait');
+    if(img&&w){img.src=r.url;img.hidden=false;w.remove();}
+  }catch(e){console.error(e);const w=$('#rc_wait');if(w)w.textContent='Could not prepare the receipt preview.';}
+}
+
+/* Settings and batch timings */
+function batchSection(){
+  const bs=batches();
+  return '<h3 class="sub-h">Batch timings</h3>'
+    +(bs.length?'<div class="list">'+bs.map(b=>{const n=S.students.filter(s=>s.batchId===b.id).length;
+      return '<div class="prow"><div><b>'+esc(batchText(b))+'</b><div class="row-sub">'+n+(n===1?' student':' students')+'</div></div><button class="mini" data-act="editBatch" data-v="'+esc(b.id)+'">Edit</button></div>';}).join('')+'</div>'
+      :'<p class="msg small">No batch timings yet.</p>')
+    +'<button class="btn btn-ghost top-gap" data-act="addBatch">Add batch timing</button>'
+    +'<p class="hint pad">Choose a student’s batch when you add or edit the student.</p>';
+}
+function openSettings(){
+  const hasSample=S.students.some(s=>s.sample);
+  sheet('Settings and backup',
+    '<form data-form="settings" novalidate>'
+    +fld('st_tui','Tuition name','<input id="st_tui" name="tuition" value="'+esc(S.settings.tuitionName)+'" placeholder="'+TUITION+'" autocapitalize="words">')
+    +fld('st_teacher','Teacher name (on receipts)','<input id="st_teacher" name="teacher" value="'+esc(S.settings.teacherName)+'" autocapitalize="words">')
+    +fld('st_qual','Qualifications (on receipts)','<input id="st_qual" name="qual" value="'+esc(S.settings.teacherQual)+'">')
+    +fld('st_phone','Contact number (on receipts)','<input id="st_phone" name="phone" type="tel" inputmode="tel" value="'+esc(S.settings.phone)+'">')
+    +fld('st_soon','Show “due soon” alerts','<select id="st_soon" name="soon">'+[1,2,3,4,5,7].map(n=>'<option value="'+n+'"'+(SOON()===n?' selected':'')+'>'+n+(n===1?' day':' days')+' before the due date</option>').join('')+'</select>')
+    +'<button class="btn btn-primary" type="submit">Save settings</button></form>'
+    +batchSection()
+    +'<h3 class="sub-h">Your data</h3><p class="msg small">'+(MODE==='local'
+      ?'Saved on this device only. Download a backup regularly and keep it somewhere safe.'
+      :'Saved with this page and available on any device where you open it while signed in. Past months are never deleted.')+'</p>'
+    +'<p class="msg small">Last backup: '+(S.settings.lastBackup?fmtDateFull(S.settings.lastBackup):'none yet')+'</p>'
+    +'<div class="stack"><button class="btn btn-ghost" data-act="backup">Download full backup (JSON)</button>'
+    +'<label class="btn btn-ghost filebtn" for="rs_file">Restore from backup<input id="rs_file" type="file" accept=".json,application/json" data-chg="restoreFile"></label>'
+    +(hasSample?'<button class="btn btn-danger-ghost" data-act="askRemoveSample">Remove sample students</button>':'<button class="btn btn-ghost" data-act="sample">Add sample students</button>')
+    +'</div>');
+}
+function openBatchForm(id){
+  const b=id?batches().find(x=>x.id===id):null;
+  sheet(b?'Edit batch timing':'Add batch timing',
+    '<form data-form="batch" data-id="'+esc(id||'')+'" novalidate><div class="two-col">'
+    +fld('bf_start','Starts at','<input id="bf_start" name="start" type="time" value="'+esc(b?b.start:'16:00')+'">')
+    +fld('bf_end','Ends at','<input id="bf_end" name="end" type="time" value="'+esc(b?b.end:'17:00')+'">')
+    +'</div><div class="err" id="bf_err" role="alert" hidden></div>'
+    +'<button class="btn btn-primary" type="submit">'+(b?'Save batch':'Add batch')+'</button></form>'
+    +'<div class="stack top-gap">'+(b?'<button class="btn btn-danger-ghost" data-act="askDelBatch" data-v="'+esc(b.id)+'">Delete this batch</button>':'')
+    +'<button class="btn btn-ghost" data-act="settings">Back to settings</button></div>');
+}
+function readFileText(file){
+  return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result));r.onerror=()=>rej(r.error);r.readAsText(file);});
+}
+async function restoreAll(data){
+  closeSheet();toast('Restoring backup…');
+  try{
+    for(const raw of data.students){
+      if(!raw||!raw.id||!raw.name)continue;
+      const doc={...raw,fees:raw.fees||{}};
+      S.students=S.students.filter(x=>x.id!==doc.id).concat([doc]);
+      rebuild();
+      await write(()=>Repo.setStudent(doc));
+    }
+    const ds=data.settings||{},o={};
+    ['tuitionName','teacherName','teacherQual','phone'].forEach(k=>{if(typeof ds[k]==='string')o[k]=ds[k];});
+    if(+ds.soonDays>0)o.soonDays=+ds.soonDays;
+    if(Array.isArray(ds.batches))o.batches=ds.batches.filter(b=>b&&b.id&&b.start&&b.end);
+    o.receiptSeq=Math.max(+ds.receiptSeq||0,+S.settings.receiptSeq||0,maxReceiptSeq(S.students,0));
+    await saveSettings(o);
+    renderAll();toast('Backup restored');
+  }catch(e){}
+}
+
+/* ---------- actions ---------- */
+const ACT={
+  tab:el=>go(el.dataset.v),
+  back:()=>{UI.sub=null;renderAll();window.scrollTo(0,0);},
+  settings:()=>openSettings(),
+  closeSheet:()=>closeSheet(),
+  addStudent:()=>{closeSheet();openStudentForm();},
+  editStudent:el=>{closeSheet();openStudentForm(el.dataset.sid);},
+  openStudent:el=>{closeSheet();go(UI.tab,{type:'student',id:el.dataset.sid});},
+  openFee:el=>openFee(el.dataset.sid,el.dataset.m),
+  pay:el=>openPay(el.dataset.sid,el.dataset.m),
+  receipt:el=>openReceipt(el.dataset.sid,el.dataset.m,el.dataset.pid),
+  editFee:el=>openFeeEdit(el.dataset.sid,el.dataset.m),
+  mprev:()=>{UI.month=addMonths(UI.month,-1);renderView();},
+  mnext:()=>{if(UI.month<TODAY.slice(0,7)){UI.month=addMonths(UI.month,1);renderView();}},
+  clsFilter:el=>{UI.f.students.cls=el.dataset.v;renderHd();renderBody();},
+  statusFilter:el=>{UI.f.fees.status=el.dataset.v;const c=$('#chips');if(c)c.innerHTML=statusChips();renderBody();},
+  openClass:el=>go('classes',{type:'class',key:el.dataset.v}),
+  paidAll:()=>{UI.paidAll=!UI.paidAll;renderBody();},
+  copy:el=>copyText(el.dataset.v),
+  showLegacy:()=>{UI.f.students.cls='_';UI.f.students.batch='all';UI.f.students.q='';go('students');},
+  addBatch:()=>openBatchForm(),
+  editBatch:el=>openBatchForm(el.dataset.v),
+  askDelBatch:el=>{
+    const b=batches().find(x=>x.id===el.dataset.v);
+    if(!b)return;
+    const kids=S.students.filter(s=>s.batchId===b.id);
+    confirmSheet({title:'Delete this batch?',
+      msg:esc(batchText(b))+' will be removed.'+(kids.length?' '+kids.length+(kids.length===1?' student is':' students are')+' in this batch and will be left without a batch.':''),
+      label:'Delete batch',tone:'danger',
+      fn:async()=>{closeSheet();try{for(const s of kids)await patchStudent(s.id,{batchId:''});await saveSettings({batches:batches().filter(x=>x.id!==b.id)});toast('Batch deleted');openSettings();renderBody();}catch(e){}}});
+  },
+  /* The anchor itself opens WhatsApp; this only notes the reminder on the fee. */
+  waSent:async el=>{
+    const f=D.key.get(el.dataset.sid+'|'+el.dataset.m);
+    if(!f)return;
+    try{await patchStudent(el.dataset.sid,{fees:{[el.dataset.m]:{reminders:[...(f.reminders||[]),Messaging.logEntry()].slice(-20)}}});}catch(e){}
+  },
+  toggleActive:async el=>{
+    const s=sget(el.dataset.sid);
+    if(!s)return;
+    const next=s.active===false;
+    try{await patchStudent(s.id,{active:next});toast(next?s.name+' is active again':s.name+' marked inactive. History is kept.');ensureFees();}catch(e){}
+  },
+  askDeleteStudent:el=>{
+    const s=sget(el.dataset.sid);
+    if(!s)return;
+    const fees=D.bySt.get(s.id)||[],n=sumBy(fees,f=>f.payments.length);
+    confirmSheet({title:'Delete '+s.name+'?',
+      msg:'This permanently deletes the student, '+fees.length+(fees.length===1?' fee record':' fee records')+' and '+n+(n===1?' payment':' payments')+'. It cannot be undone. To stop new fees but keep the history, mark the student inactive instead.',
+      check:'I understand this cannot be undone',label:'Delete permanently',tone:'danger',
+      alt:{label:'Mark inactive instead',fn:async()=>{closeSheet();try{await patchStudent(s.id,{active:false});toast('Marked inactive. History is kept.');}catch(e){}}},
+      fn:async()=>{closeSheet();UI.sub=null;try{await removeStudent(s.id);renderAll();toast('Student deleted');}catch(e){}}});
+  },
+  askDelPay:el=>{
+    const sidv=el.dataset.sid,m=el.dataset.m,pid=el.dataset.pid;
+    const s=sget(sidv),f=D.key.get(sidv+'|'+m),p=f&&f.payments.find(x=>x.id===pid);
+    if(!p)return;
+    confirmSheet({title:'Delete this payment?',
+      msg:esc(inr(p.amount))+' paid by '+esc(s.name)+' on '+esc(fmtLong(p.date))+' ('+esc(p.mode)+') will be removed and the '+esc(monthLabel(m))+' fee will show the balance again.',
+      label:'Delete payment',tone:'danger',
+      fn:async()=>{closeSheet();try{await patchStudent(sidv,{fees:{[m]:{payments:f.payments.filter(x=>x.id!==pid)}}});toast('Payment deleted');openFee(sidv,m);}catch(e){}}});
+  },
+  confirmYes:()=>{const o=CONFIRM;if(o&&o.fn)Promise.resolve(o.fn()).catch(()=>{});},
+  confirmAlt:()=>{const o=CONFIRM;if(o&&o.alt)Promise.resolve(o.alt.fn()).catch(()=>{});},
+  exportCsv:async el=>{
+    const k=el.dataset.v,soon=SOON();
+    let rows,name;
+    if(k==='ledger'){rows=ledgerRows(S.students,UI.month,TODAY,soon,batchLabel);name='fee-ledger-'+UI.month;}
+    else if(k==='pending'){rows=pendingRows(S.students,TODAY,soon);name='pending-and-overdue-'+TODAY;}
+    else if(k==='payments'){rows=paymentRows(S.students);name='all-payments-'+TODAY;}
+    else{rows=studentRows(S.students,batchLabel);name='students-'+TODAY;}
+    if(await saveFile(name+'.csv',new Blob([toCsv(rows)],{type:'text/csv'})))toast('File saved');
+  },
+  backup:async()=>{
+    const st=S.settings,payload={app:'tuition-fee-manager',version:2,exportedAt:new Date().toISOString(),
+      settings:{tuitionName:st.tuitionName,teacherName:st.teacherName,teacherQual:st.teacherQual,phone:st.phone,soonDays:st.soonDays,batches:batches(),receiptSeq:maxReceiptSeq(S.students,st.receiptSeq)},students:S.students.map(clean)};
+    if(await saveFile('tuition-fee-backup-'+TODAY+'.json',new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}))){
+      toast('Backup saved');
+      try{await saveSettings({lastBackup:TODAY});}catch(e){}
+      renderBody();
+    }
+  },
+  sample:async()=>{
+    closeSheet();
+    const docs=sampleStudents(TODAY);
+    S.students=S.students.filter(s=>!s.sample).concat(docs);rebuild();renderAll();
+    try{for(const d of docs)await write(()=>Repo.setStudent(d));toast('Sample students added. Remove them in Settings.');}catch(e){}
+  },
+  askRemoveSample:()=>{
+    const n=S.students.filter(s=>s.sample).length;
+    confirmSheet({title:'Remove sample students?',msg:'This deletes the '+n+' sample students and their sample fees. Your own students are not touched.',label:'Remove sample students',tone:'danger',
+      fn:async()=>{closeSheet();try{for(const s of S.students.filter(x=>x.sample))await removeStudent(s.id);renderAll();toast('Sample students removed');}catch(e){}}});
+  },
+  rcPdf:async el=>{
+    const x=rcLookup(el);
+    if(!x)return;
+    toast('Preparing PDF…');
+    let pdf;
+    try{pdf=await receiptPdf(x.c);}catch(e){console.error(e);toast('Could not create the PDF. Please try again.');return;}
+    if(await saveFile(rcFileName(x),pdf))toast('Receipt saved');
+  },
+  rcShare:async el=>{
+    const x=rcLookup(el);
+    if(!x)return;
+    toast('Preparing PDF…');
+    let pdf;
+    try{pdf=await receiptPdf(x.c);}catch(e){console.error(e);toast('Could not create the PDF. Please try again.');return;}
+    try{
+      const file=new File([pdf],rcFileName(x),{type:'application/pdf'});
+      if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'Fee receipt '+x.c.no});return;}
+    }catch(e){if(e&&e.name==='AbortError')return;}
+    if(await saveFile(rcFileName(x),pdf))toast('Saved. Attach the PDF in WhatsApp.');
+  },
+  rcCopy:el=>{const x=rcLookup(el);if(x)copyText(receiptText(x.s,x.f,x.p,TUI()));}
+};
+const IN={
+  q:el=>{
+    const F=UI.f[UI.tab];
+    if(!F)return;
+    F.q=el.value;
+    if(UI.tab==='fees'){const c=$('#chips');if(c)c.innerHTML=statusChips();}
+    renderBody();
+  },
+  payAmt:el=>{
+    const form=el.closest('form'),rem=+form.dataset.rem,v=+el.value||0,t=$('#pay_left');
+    if(t)t.textContent=leftText(rem,v);
+  },
+  _:0
+};
+const CHG={
+  feesCls:el=>{UI.f.fees.cls=el.value;const c=$('#chips');if(c)c.innerHTML=statusChips();renderBody();},
+  repStudent:el=>{UI.rep=el.value;renderBody();},
+  cfCheck:el=>{const b=$('#cf_yes');if(b)b.disabled=!el.checked;},
+  stuBatch:el=>{UI.f.students.batch=el.value;renderBody();},
+  restoreFile:async el=>{
+    const file=el.files&&el.files[0];
+    if(!file)return;
+    let data;
+    try{data=JSON.parse(await readFileText(file));}catch(e){toast('That file is not a valid backup.');return;}
+    if(!data||data.app!=='tuition-fee-manager'||!Array.isArray(data.students)){toast('That is not a Tuition Fee Manager backup.');return;}
+    confirmSheet({title:'Restore this backup?',msg:'This adds or replaces '+data.students.length+(data.students.length===1?' student':' students')+' from the backup, with their fee records and payments. Students that are not in the backup are kept.',label:'Restore',tone:'primary',fn:()=>restoreAll(data)});
+  }
+};
+const FORMS={
+  student:async f=>{
+    const g=n=>f.elements[n].value.trim();
+    const name=g('name'),cls=g('cls'),fee=+g('fee'),due=Math.round(+g('due')),join=g('join'),mobile=g('mobile');
+    const err=t=>showErr('sf_err',t);
+    if(!name)return err('Enter the student’s name.');
+    if(!CLASSES.includes(cls))return err('Choose the class (PG to Class 8).');
+    if(!(fee>0))return err('Enter the monthly fee.');
+    if(!(due>=1&&due<=31))return err('The due day must be between 1 and 31.');
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(join))return err('Choose the joining date.');
+    if(mobile&&mobile.replace(/\D/g,'').length<10)return err('The mobile number looks too short.');
+    const base={name,cls,clsOther:'',batchId:g('batch'),parent:g('parent'),mobile,monthlyFee:fee,joinDate:join,dueDay:due,notes:g('notes')};
+    const id=f.dataset.id;
+    busy(f,true);
+    try{
+      if(id){
+        const patch={...base},rp=repriceFees({...sget(id),...base},TODAY);
+        if(Object.keys(rp).length)patch.fees=rp;
+        await patchStudent(id,patch);
+        toast(Object.keys(rp).length?'Saved. This month’s fee was updated too.':'Student updated');
+        closeSheet();ensureFees();
+      }else{
+        const doc={id:newId('s'),...base,active:true,fees:{},createdAt:TODAY},mf=missingFees([doc],TODAY)[0];
+        if(mf)doc.fees=mf.fees;
+        await addStudentDoc(doc);
+        closeSheet();toast(name+' added');
+      }
+    }catch(e){busy(f,false);}
+  },
+  pay:async f=>{
+    const sidv=f.dataset.sid,m=f.dataset.m,fee=D.key.get(sidv+'|'+m);
+    if(!fee)return;
+    const st=feeStatus(fee,TODAY,SOON());
+    const date=f.elements.date.value,amount=Math.round(+f.elements.amount.value*100)/100,mode=f.elements.mode.value,notes=f.elements.notes.value.trim();
+    const err=t=>showErr('pay_err',t);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return err('Choose the payment date.');
+    if(!(amount>0))return err('Enter the amount received.');
+    if(amount>st.remaining+0.001)return err('That is more than the '+inr(st.remaining)+' due. Lower the amount.');
+    const seq=nextReceiptNo(S.students,S.settings.receiptSeq);
+    const p={id:newId('p'),no:fmtReceiptNo(seq),issued:TODAY,date,amount,mode,notes};
+    busy(f,true);
+    try{
+      await patchStudent(sidv,{fees:{[m]:{payments:[...fee.payments,p]}}});
+      try{await saveSettings({receiptSeq:seq});}catch(e){}
+      setLastMode(mode);closeSheet();openPaid(sidv,m,p.id);
+    }catch(e){busy(f,false);}
+  },
+  feeEdit:async f=>{
+    const sidv=f.dataset.sid,m=f.dataset.m,fee=D.key.get(sidv+'|'+m);
+    if(!fee)return;
+    const amount=+f.elements.amount.value,due=f.elements.due.value,note=f.elements.note.value.trim();
+    const err=t=>showErr('fe_err',t);
+    if(!(amount>=0)||f.elements.amount.value==='')return err('Enter the fee amount.');
+    if(amount<paidOf(fee))return err('The fee cannot be lower than the '+inr(paidOf(fee))+' already paid.');
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(due))return err('Choose the due date.');
+    busy(f,true);
+    try{await patchStudent(sidv,{fees:{[m]:{amount,dueDate:due,note}}});toast('Fee updated');openFee(sidv,m);}
+    catch(e){busy(f,false);}
+  },
+  batch:async f=>{
+    const start=f.elements.start.value,end=f.elements.end.value,id=f.dataset.id;
+    const err=x=>showErr('bf_err',x);
+    if(!start||!end)return err('Choose both the start and the end time.');
+    if(end<=start)return err('The end time must be after the start time.');
+    const list=batches().slice();
+    if(list.some(b=>b.id!==id&&b.start===start&&b.end===end))return err('This batch already exists.');
+    if(id){const i=list.findIndex(b=>b.id===id);if(i>=0)list[i]={...list[i],start,end};}
+    else list.push({id:newId('b'),start,end});
+    list.sort((a,b)=>a.start.localeCompare(b.start)||a.end.localeCompare(b.end));
+    busy(f,true);
+    try{await saveSettings({batches:list});toast(id?'Batch updated':'Batch added');openSettings();renderBody();}
+    catch(e){busy(f,false);}
+  },
+  settings:async f=>{
+    busy(f,true);
+    try{await saveSettings({tuitionName:f.elements.tuition.value.trim(),teacherName:f.elements.teacher.value.trim(),teacherQual:f.elements.qual.value.trim(),phone:f.elements.phone.value.trim(),soonDays:+f.elements.soon.value||3});closeSheet();renderAll();toast('Settings saved');}
+    catch(e){busy(f,false);}
+  }
+};
+
+/* Native layer for the Android / iOS app (Capacitor). In a normal browser or the web artifact this does nothing.
+   Capacitor injects its plugins into window.Capacitor.Plugins, so no bundler is needed. */
+(function(){
+  const C=window.Capacitor;
+  if(!C||!(C.isNativePlatform&&C.isNativePlatform())){window.NativeReady=Promise.resolve();return;}
+  const P=C.Plugins||{};
+  const KEY='tuition-fee-manager.v1';
+  document.documentElement.classList.add('native','native-'+C.getPlatform());
+
+  /* Durable storage: the app keeps its data in localStorage, and every save is also mirrored to the phone's
+     native preferences store, so the data survives even if the system clears the web view's storage. */
+  window.NativeReady=(async()=>{
+    try{
+      if(P.Preferences){
+        const got=await P.Preferences.get({key:KEY});
+        let have=null;try{have=localStorage.getItem(KEY);}catch(e){}
+        if(!have&&got&&got.value){try{localStorage.setItem(KEY,got.value);}catch(e){}}
+        else if(have&&!(got&&got.value)){P.Preferences.set({key:KEY,value:have});}
+        const orig=Storage.prototype.setItem;
+        Storage.prototype.setItem=function(k,v){orig.call(this,k,v);if(k===KEY)P.Preferences.set({key:KEY,value:String(v)}).catch(()=>{});};
+      }
+    }catch(e){console.error('native storage',e);}
+    try{
+      if(P.StatusBar){await P.StatusBar.setBackgroundColor({color:'#FF6A00'}).catch(()=>{});await P.StatusBar.setStyle({style:'DARK'}).catch(()=>{});}
+      if(P.SplashScreen)P.SplashScreen.hide().catch(()=>{});
+    }catch(e){}
+  })();
+
+  const toB64=blob=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]||'');r.onerror=()=>rej(r.error);r.readAsDataURL(blob);});
+
+  /* Replaces the web "save file" step: write into the app cache, then open the phone's share sheet
+     (Save to Files, WhatsApp, Drive, Email, Print ...). */
+  window.NativeBridge={
+    async saveFile(name,data){
+      const blob=data instanceof Blob?data:new Blob([data]);
+      const b64=await toB64(blob);
+      const w=await P.Filesystem.writeFile({path:name,data:b64,directory:'CACHE',recursive:true});
+      try{
+        await P.Share.share({title:name,dialogTitle:'Save or share',files:[w.uri]});
+        return true;
+      }catch(e){
+        if(e&&/cancel/i.test(String(e.message||e)))return false;   /* user closed the share sheet */
+        throw e;
+      }
+    }
+  };
+
+  /* Open WhatsApp and other web links outside the app. */
+  document.addEventListener('click',e=>{
+    const a=e.target.closest&&e.target.closest('a[href^="http"]');
+    if(!a)return;
+    e.preventDefault();
+    window.open(a.href,'_system');
+  },true);
+
+  /* Android back button: close a sheet, then go back a screen, then leave the app. */
+  if(P.App&&P.App.addListener){
+    P.App.addListener('backButton',()=>{
+      if(document.querySelector('#sheetRoot .sheet')){closeSheet();return;}
+      const b=document.querySelector('[data-act="back"]');
+      if(b){b.click();return;}
+      if(UI.tab!=='dash'){UI.tab='dash';UI.sub=null;renderAll();return;}
+      P.App.exitApp();
+    });
+  }
+})();
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{
+  const el=e.target.closest&&e.target.closest('[data-act]');
+  if(!el)return;
+  const fn=ACT[el.dataset.act];
+  if(fn)fn(el,e);
+});
+document.addEventListener('input',e=>{
+  const k=e.target.dataset&&e.target.dataset.in;
+  if(k&&IN[k])IN[k](e.target);
+});
+document.addEventListener('change',e=>{
+  const k=e.target.dataset&&e.target.dataset.chg;
+  if(k&&CHG[k])CHG[k](e.target);
+});
+document.addEventListener('submit',e=>{
+  e.preventDefault();
+  const f=e.target,fn=f.dataset&&FORMS[f.dataset.form];
+  if(fn)fn(f);
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&$('#sheetRoot .sheet')){closeSheet();return;}
+  const t=e.target;
+  if((e.key==='Enter'||e.key===' ')&&t&&t.getAttribute&&t.getAttribute('role')==='button'&&t.dataset.act){e.preventDefault();t.click();}
+});
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden||!S.loaded)return;
+  const t=ymd(new Date());
+  if(t!==TODAY){
+    const wasCurrent=UI.month===TODAY.slice(0,7);
+    TODAY=t;
+    if(wasCurrent)UI.month=TODAY.slice(0,7);
+  }
+  ensureFees();
+  if(!$('#sheetRoot .sheet'))renderAll();
+});
+
+/* ---------- start ---------- */
+async function boot(){
+  renderAll();
+  if(window.NativeReady)await window.NativeReady;
+  let db=null;
+  try{db=window.claude&&window.claude.use?await window.claude.use('db'):null;}catch(e){db=null;}
+  try{
+    if(db){Repo=dbRepo(db);MODE='cloud';}
+    else{Repo=localRepo();MODE='local';}
+    Repo.start();
+  }catch(e){
+    console.error(e);
+    Repo=localRepo();MODE='local';
+    try{Repo.start();}catch(e2){console.error(e2);}
+  }
+  setTimeout(()=>{if(!S.loaded){S.loaded=true;onData(false);}},6000);
+}
+try{
+  boot().catch(e=>{console.error(e);$('#view').innerHTML='<div class="none big">The app could not start. Please reload the page.</div>';});
+}catch(e){
+  console.error(e);
+  $('#view').innerHTML='<div class="none big">The app could not start. Please reload the page.</div>';
+}
+
+</script>
+
+</html>
