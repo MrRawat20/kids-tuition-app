@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#FF6A00">
-<meta name="mobile-web-app-capable" content="yes">
 <title>Kids Tuition Classes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -274,6 +273,10 @@ html.native body{-webkit-tap-highlight-color:transparent;-webkit-user-select:non
 html.native input,html.native textarea,html.native select,html.native .sel{-webkit-user-select:text;user-select:text}
 html.native .top{top:0;padding-top:env(safe-area-inset-top,0px)}
 
+.void{text-decoration:line-through;color:var(--muted)}
+
+.sheet-body .kv.tight{margin-bottom:14px}
+
 </style>
 <header class="top" id="top"><div class="wrap top-in"><div class="top-t"><div class="eyebrow">Kids Tuition Classes</div><h1><span>Dashboard</span></h1></div></div></header>
 <main class="wrap" id="view"><div class="loading"><div class="spin"></div>Opening your register…</div></main>
@@ -357,22 +360,89 @@ function matchStudent(s,q,extra){
 }
 
 /* ---------- fees ---------- */
+/* ---------- fee ledger: transactions, allocation and carry-forward ----------
+   A payment is stored once, under the month it was recorded in: fees[m].payments[] = {id,no,date,amount,mode,notes,alloc:[{m,a}]}.
+   "alloc" says which fee months that money settled (oldest first). Older payments without "alloc" settle their own month.
+   Cancelled payments keep their record (void) but count for nothing.
+   Nothing about carry-forward is stored: what is carried into a month is always worked out from the fees and payments,
+   so generating fees again can never add the same balance twice. */
+const round2=n=>Math.round((+n||0)*100)/100;
+const isLive=p=>!(p&&p.void);
+const allocOf=(p,month)=>(p.alloc&&p.alloc.length)?p.alloc:[{m:month,a:+p.amount||0}];
 function flattenFees(students){
   const out=[];
   for(const s of students){
-    const f=s.fees||{};
-    for(const m of Object.keys(f)){
-      out.push({key:s.id+'|'+m,studentId:s.id,month:m,amount:+f[m].amount||0,dueDate:f[m].dueDate,payments:f[m].payments||[],note:f[m].note||'',reminders:f[m].reminders||[]});
+    const F=s.fees||{},months=Object.keys(F).sort();
+    const got={},hits={};
+    months.forEach(m=>{got[m]=0;hits[m]=[];});
+    for(const mk of months)for(const p of (F[mk].payments||[])){
+      if(!isLive(p))continue;
+      for(const x of allocOf(p,mk))if(got[x.m]!==undefined){got[x.m]=round2(got[x.m]+(+x.a||0));hits[x.m].push({p,a:+x.a||0,from:mk});}
     }
+    let carry=0,carryParts=[];
+    months.forEach((m,i)=>{
+      const f=F[m],amount=+f.amount||0,pays=f.payments||[];
+      /* what was still unpaid from earlier months when this month began (payments recorded in earlier months only) */
+      const parts=[];
+      for(const k of months.slice(0,i)){
+        const settled=sumBy(hits[k].filter(h=>h.from<m),h=>h.a),rem=round2((+F[k].amount||0)-settled);
+        if(rem>0)parts.push({m:k,a:rem});
+      }
+      const carriedIn=round2(sumBy(parts,x=>x.a));
+      const recv=round2(sumBy(pays.filter(isLive),p=>+p.amount||0));
+      out.push({key:s.id+'|'+m,studentId:s.id,month:m,amount,dueDate:f.dueDate,payments:pays,note:f.note||'',reminders:f.reminders||[],
+        got:got[m],hits:hits[m],carriedIn,carryParts:parts,payable:round2(amount+carriedIn),recv,balance:Math.max(0,round2(amount+carriedIn-recv))});
+    });
   }
   return out;
 }
-function paidOf(fee){return sumBy(fee.payments||[],p=>+p.amount||0);}
+function paidOf(fee){return fee.got!==undefined?fee.got:round2(sumBy((fee.payments||[]).filter(isLive),p=>+p.amount||0));}
 function lastPayment(fee){
-  const ps=(fee.payments||[]).slice().sort((a,b)=>(a.date+a.id).localeCompare(b.date+b.id));
+  const src=fee.hits?fee.hits.map(h=>h.p):(fee.payments||[]).filter(isLive);
+  const ps=src.slice().sort((a,b)=>(a.date+a.id).localeCompare(b.date+b.id));
   return ps.length?ps[ps.length-1]:null;
 }
 function lastPayDate(fee){const p=lastPayment(fee);return p?p.date:null;}
+const owedOf=fee=>Math.max(0,round2((+fee.amount||0)-paidOf(fee)));
+
+/* Oldest dues first: split an amount over the unpaid fees up to and including `upto`. */
+function allocatePayment(fees,amount,upto){
+  let left=round2(amount);const alloc=[];
+  const list=fees.filter(f=>f.month<=upto).sort((a,b)=>a.month.localeCompare(b.month));
+  for(const f of list){
+    if(left<=0)break;
+    const rem=owedOf(f);if(rem<=0)continue;
+    const a=Math.min(rem,left);alloc.push({m:f.month,a:round2(a)});left=round2(left-a);
+  }
+  return {alloc,unallocated:left};
+}
+/* Figures shown when taking a payment for month m. */
+function payView(s,m){
+  const fees=flattenFees([s]),f=fees.find(x=>x.month===m);
+  if(!f)return null;
+  const prev=round2(sumBy(fees.filter(x=>x.month<m),owedOf));
+  const own=owedOf(f);
+  return {fee:f.amount,prev,payable:round2(f.amount+prev),paid:paidOf(f),remaining:round2(prev+own),ownRemaining:own,fees};
+}
+/* Check an amount and work out where it goes. */
+function planPayment(s,m,amount){
+  const v=payView(s,m);
+  if(!v)return {ok:false,error:'This fee record was not found.'};
+  amount=round2(amount);
+  if(!(amount>0))return {ok:false,error:'Enter the amount received.'};
+  if(v.remaining<=0)return {ok:false,error:'Nothing is due up to this month.'};
+  if(amount>v.remaining+0.001)return {ok:false,error:'That is more than the '+inr(v.remaining)+' due. Lower the amount.'};
+  const r=allocatePayment(v.fees,amount,m);
+  if(r.unallocated>0.001)return {ok:false,error:'The amount could not be matched to dues.'};
+  return {ok:true,alloc:r.alloc,after:round2(v.remaining-amount),view:v};
+}
+const payCmp=(a,b)=>(receiptSeqOf(a.no)-receiptSeqOf(b.no))||(a.date+a.id).localeCompare(b.date+b.id);
+/* A student's payments, oldest first, with the month each was recorded in. */
+function studentPayments(s){
+  const out=[];
+  for(const mk of Object.keys(s.fees||{}))for(const p of (s.fees[mk].payments||[]))out.push({p,mk});
+  return out.sort((a,b)=>payCmp(a.p,b.p));
+}
 
 function feeStatus(fee,today,soonDays){
   soonDays=soonDays==null?3:soonDays;
@@ -383,7 +453,7 @@ function feeStatus(fee,today,soonDays){
   const overdue=days<0,dueToday=days===0,dueSoon=days>=0&&days<=soonDays;
   return {status:paid>0?'partial':(overdue?'overdue':'pending'),paid,remaining,days,overdue,dueToday,dueSoon,late:overdue?-days:0};
 }
-function statusLabel(st){return {paid:'Paid',partial:'Partially Paid',overdue:'Overdue',pending:'Pending'}[st.status];}
+function statusLabel(st){return {paid:'Paid',partial:'Partially Paid',overdue:'Unpaid',pending:'Unpaid'}[st.status];}
 
 /* Fee records that should exist but do not yet. Starts at the joining month, but never more than 2 months back. */
 function missingFees(students,today){
@@ -442,7 +512,7 @@ function buildAlerts(students,today,soon){
 
 /* ---------- totals ---------- */
 function summarize(fees,today,soon){
-  let expected=0,received=0,pending=0,overdueAmt=0,overdueN=0,soonAmt=0,soonN=0,paidN=0;
+  let expected=0,received=0,pending=0,overdueAmt=0,overdueN=0,soonAmt=0,soonN=0,paidN=0,partialN=0,unpaidN=0;
   const owing=new Set();
   for(const f of fees){
     const st=feeStatus(f,today,soon);
@@ -450,9 +520,9 @@ function summarize(fees,today,soon){
     if(st.remaining>0)owing.add(f.studentId);
     if(st.overdue){overdueAmt+=st.remaining;overdueN++;}
     if(st.dueSoon){soonAmt+=st.remaining;soonN++;}
-    if(st.status==='paid')paidN++;
+    if(st.status==='paid')paidN++;else if(st.status==='partial')partialN++;else unpaidN++;
   }
-  return {expected,received,pending,overdueAmt,overdueN,soonAmt,soonN,paidN,pendingStudents:owing.size,count:fees.length};
+  return {expected,received,pending,overdueAmt,overdueN,soonAmt,soonN,paidN,partialN,unpaidN,pendingStudents:owing.size,count:fees.length};
 }
 function classTotals(students,month,today,soon){
   const by=new Map(students.map(s=>[s.id,s]));
@@ -466,12 +536,20 @@ function classTotals(students,month,today,soon){
   }
   return out;
 }
+/* Cash actually received in a month, by payment date. Cancelled payments are not counted. */
+function collectedIn(students,month){
+  let amount=0,count=0;
+  for(const s of students)for(const x of studentPayments(s))if(isLive(x.p)&&String(x.p.date).slice(0,7)===month){amount+=+x.p.amount||0;count++;}
+  return {amount:round2(amount),count};
+}
+/* Everything still unpaid, summed fee by fee (each rupee is counted once, under the month it belongs to). */
+const outstandingTotal=fees=>round2(sumBy(fees,owedOf));
 function trend(students,endMonth,count,today,soon){
   const all=flattenFees(students),rows=[];
   for(let i=count-1;i>=0;i--){
     const m=addMonths(endMonth,-i);
     const t=summarize(all.filter(f=>f.month===m),today,soon);
-    rows.push({month:m,expected:t.expected,received:t.received});
+    rows.push({month:m,expected:t.expected,received:collectedIn(students,m).amount});
   }
   return rows;
 }
@@ -507,13 +585,26 @@ function missingReceiptNos(students,seq){
   }
   return {patches,seq:n};
 }
-/* Status of the fee right after this payment was made. */
-function receiptInfo(fee,p){
-  const ps=(fee.payments||[]).slice().sort((a,b)=>(a.date+a.id).localeCompare(b.date+b.id));
-  let cum=0;
-  for(const x of ps){cum+=+x.amount||0;if(x.id===p.id)break;}
-  const balance=Math.max(0,(+fee.amount||0)-cum);
-  return {status:balance<=0?'Paid':'Partially Paid',balance,cum};
+/* What a receipt must say about one payment: where the money went and what was still owing right after it.
+   Balances cover the fee month the payment was recorded in and every earlier month. */
+function receiptInfo(s,fee,p){
+  const M=fee.month,F=s.fees||{},months=Object.keys(F).sort();
+  const got={};months.forEach(m=>{got[m]=0;});
+  let prev=null,after=null,alloc=allocOf(p,M);
+  const owedUpTo=(lim,strict)=>round2(sumBy(months.filter(m=>strict?m<lim:m<=lim),m=>(+F[m].amount||0)-got[m]));
+  for(const x of studentPayments(s)){
+    if(x.p.id===p.id){
+      prev=owedUpTo(M,true);
+      if(isLive(p))for(const y of allocOf(p,x.mk))if(got[y.m]!==undefined)got[y.m]=round2(got[y.m]+(+y.a||0));
+      after=owedUpTo(M,false);
+      break;
+    }
+    if(isLive(x.p))for(const y of allocOf(x.p,x.mk))if(got[y.m]!==undefined)got[y.m]=round2(got[y.m]+(+y.a||0));
+  }
+  if(after===null){prev=0;after=owedUpTo(M,false);}
+  after=Math.max(0,after);prev=Math.max(0,prev);
+  return {status:p.void?'Cancelled':(after<=0?'Paid':'Partially Paid'),balance:after,prev,alloc,partial:after>0,
+    covers:alloc.map(x=>x.m),feeAmount:+fee.amount||0};
 }
 function waNumber(mobile){
   let d=String(mobile||'').replace(/\D/g,'');
@@ -527,14 +618,24 @@ function waLink(mobile,text){
 }
 function reminderText(s,fee,st,tuition){
   const name=tuition||TUITION;
+  const pv=s.fees&&s.fees[fee.month]?payView(s,fee.month):null;
+  const prev=pv?pv.prev:0,pending=pv?pv.remaining:st.remaining;
   const lines=[s.parent?'Hello '+s.parent+',':'Hello,','','This is a fee reminder from '+name+'.','',
-    'Student Name: '+s.name,'Fee Month: '+monthLabel(fee.month),'Pending Amount: '+inr(st.remaining),'Due Date: '+fmtDateFull(fee.dueDate),'',
+    'Student Name: '+s.name,'Fee Month: '+monthLabel(fee.month),'Pending Amount: '+inr(pending)+(prev>0?' (includes '+inr(prev)+' previous outstanding)':''),'Due Date: '+fmtDateFull(fee.dueDate),'',
     st.overdue?'The due date has passed. Kindly make the payment at your convenience.':'Kindly make the payment by the due date.','Thank you.','– '+name];
   return lines.join('\n');
 }
+function allocText(alloc){return alloc.map(x=>monthLabel(x.m)+' '+inr(x.a)).join(', ');}
 function receiptText(s,fee,p,tuition){
-  const info=receiptInfo(fee,p);
-  return 'Fee receipt '+receiptNo(p)+'\n'+(tuition||TUITION)+'\nStudent: '+s.name+' ('+classLabel(s)+')\nFee month: '+monthLabel(fee.month)+'\nAmount paid: '+inr(p.amount)+'\nPayment date: '+fmtDateFull(p.date)+'\nPayment mode: '+p.mode+'\nStatus: '+info.status+(info.balance>0?' (balance '+inr(info.balance)+')':'')+'\nThank you.';
+  const info=receiptInfo(s,fee,p);
+  const lines=['Fee receipt '+receiptNo(p),(tuition||TUITION),'Student: '+s.name+' ('+classLabel(s)+')',
+    'Fee month: '+(info.alloc.length>1||(info.alloc[0]&&info.alloc[0].m!==fee.month)?info.alloc.map(x=>monthLabel(x.m)).join(' + '):monthLabel(fee.month)),
+    'Amount received: '+inr(p.amount),'Payment date: '+fmtDateFull(p.date),'Payment mode: '+p.mode];
+  if(info.alloc.length>1||(info.alloc[0]&&info.alloc[0].m!==fee.month))lines.push('Applied to: '+allocText(info.alloc));
+  lines.push('Total fee ('+monthLabel(fee.month)+'): '+inr(info.feeAmount));
+  if(info.prev>0)lines.push('Previous outstanding: '+inr(info.prev));
+  lines.push('Outstanding balance after this payment: '+inr(info.balance),'Status: '+info.status,'Thank you.');
+  return lines.join('\n');
 }
 
 /* ---------- exports ---------- */
@@ -547,30 +648,32 @@ function byClassName(by){return (a,b)=>{
 function ledgerRows(students,month,today,soon,bl){
   bl=bl||(()=>'');
   const by=new Map(students.map(s=>[s.id,s]));
-  const rows=[['Student','Class','Batch','Parent','Mobile','Month','Monthly Fee','Due Date','Status','Paid','Remaining','Payment Date','Payment Mode']];
+  const rows=[['Student','Class','Batch','Parent','Mobile','Month','Monthly Fee','Carried In','Total Payable','Due Date','Status','Paid Against This Month','Remaining This Month','Last Payment Date','Last Payment Mode']];
   flattenFees(students).filter(f=>f.month===month).sort(byClassName(by)).forEach(f=>{
     const s=by.get(f.studentId),st=feeStatus(f,today,soon),lp=lastPayment(f);
-    rows.push([s.name,classLabel(s),bl(s),s.parent||'',s.mobile||'',monthLabel(f.month),f.amount,f.dueDate,statusLabel(st)+(st.overdue&&st.status==='partial'?' (overdue)':''),st.paid,st.remaining,lp?lp.date:'',lp?lp.mode:'']);
+    rows.push([s.name,classLabel(s),bl(s),s.parent||'',s.mobile||'',monthLabel(f.month),f.amount,f.carriedIn,f.payable,f.dueDate,statusLabel(st)+(st.overdue&&st.status==='partial'?' (overdue)':st.overdue?' (overdue)':''),st.paid,st.remaining,lp?lp.date:'',lp?lp.mode:'']);
   });
   return rows;
 }
 function pendingRows(students,today,soon){
   const by=new Map(students.map(s=>[s.id,s]));
-  const rows=[['Student','Class','Parent','Mobile','Month','Monthly Fee','Paid','Remaining','Due Date','Days Overdue','Status']];
+  const rows=[['Student','Class','Parent','Mobile','Fee Month','Monthly Fee','Paid Against It','Outstanding','Due Date','Days Overdue','Status']];
   flattenFees(students).sort(byClassName(by)).forEach(f=>{
     const s=by.get(f.studentId),st=feeStatus(f,today,soon);
     if(st.remaining<=0)return;
-    rows.push([s.name,classLabel(s),s.parent||'',s.mobile||'',monthLabel(f.month),f.amount,st.paid,st.remaining,f.dueDate,st.late,st.overdue?'Overdue':statusLabel(st)]);
+    rows.push([s.name,classLabel(s),s.parent||'',s.mobile||'',monthLabel(f.month),f.amount,st.paid,st.remaining,f.dueDate,st.late,st.overdue?(st.status==='partial'?'Partially Paid (overdue)':'Unpaid (overdue)'):statusLabel(st)]);
   });
   return rows;
 }
 function paymentRows(students){
-  const by=new Map(students.map(s=>[s.id,s]));
   const list=[];
-  for(const f of flattenFees(students))for(const p of f.payments)list.push({s:by.get(f.studentId),f,p});
+  for(const s of students)for(const x of studentPayments(s)){
+    const fee=flattenFees([s]).find(f=>f.month===x.mk)||{month:x.mk,amount:+(s.fees[x.mk]||{}).amount||0};
+    list.push({s,mk:x.mk,p:x.p,info:receiptInfo(s,fee,x.p)});
+  }
   list.sort((a,b)=>b.p.date.localeCompare(a.p.date)||a.s.name.localeCompare(b.s.name));
-  const rows=[['Receipt No','Payment Date','Student','Class','Month','Amount','Mode','Notes']];
-  list.forEach(x=>rows.push([receiptNo(x.p),x.p.date,x.s.name,classLabel(x.s),monthLabel(x.f.month),x.p.amount,x.p.mode,x.p.notes||'']));
+  const rows=[['Receipt No','Payment Date','Student','Class','Recorded In','Amount Received','Applied To','Outstanding After','Status','Mode','Notes']];
+  list.forEach(x=>rows.push([receiptNo(x.p),x.p.date,x.s.name,classLabel(x.s),monthLabel(x.mk),x.p.void?0:x.p.amount,allocText(x.info.alloc),x.info.balance,x.info.status,x.p.mode,(x.p.void?'CANCELLED ':'')+(x.p.notes||'')]));
   return rows;
 }
 function studentRows(students,bl){
@@ -615,7 +718,7 @@ function sampleStudents(today){
 }
 
 if(typeof module!=='undefined'&&module.exports){
-  module.exports={MONTHS,CLASSES,MODES,TUITION,TAGLINE,DEFAULT_BATCHES,clsName,fmtTime,batchText,fmtDateFull,isLegacyClass,fmtReceiptNo,receiptSeqOf,maxReceiptSeq,nextReceiptNo,missingReceiptNos,receiptInfo,pad,ymd,addMonths,daysInMonth,dueDateFor,diffDays,weekday,monthLabel,monthShort,fmtLong,fmtShort,ordinal,inr,compact,deepMerge,classKey,classLabel,matchStudent,flattenFees,paidOf,lastPayment,lastPayDate,feeStatus,statusLabel,missingFees,repriceFees,alertText,alertDetail,buildAlerts,summarize,classTotals,trend,receiptNo,waNumber,waLink,reminderText,receiptText,csvEscape,toCsv,ledgerRows,pendingRows,paymentRows,studentRows,sampleStudents,sumBy};
+  module.exports={round2,isLive,allocOf,allocatePayment,payView,planPayment,studentPayments,collectedIn,outstandingTotal,owedOf,allocText,MONTHS,CLASSES,MODES,TUITION,TAGLINE,DEFAULT_BATCHES,clsName,fmtTime,batchText,fmtDateFull,isLegacyClass,fmtReceiptNo,receiptSeqOf,maxReceiptSeq,nextReceiptNo,missingReceiptNos,receiptInfo,pad,ymd,addMonths,daysInMonth,dueDateFor,diffDays,weekday,monthLabel,monthShort,fmtLong,fmtShort,ordinal,inr,compact,deepMerge,classKey,classLabel,matchStudent,flattenFees,paidOf,lastPayment,lastPayDate,feeStatus,statusLabel,missingFees,repriceFees,alertText,alertDetail,buildAlerts,summarize,classTotals,trend,receiptNo,waNumber,waLink,reminderText,receiptText,csvEscape,toCsv,ledgerRows,pendingRows,paymentRows,studentRows,sampleStudents,sumBy};
 }
 
 /* Fee reminder delivery.
@@ -874,10 +977,10 @@ function badge(st){
   let cls,txt;
   if(st.status==='paid'){cls='ok';txt='Paid';}
   else if(st.status==='partial'){cls=st.overdue?'bad':'warn';txt='Partially Paid';}
-  else if(st.overdue){cls='bad';txt='Overdue';}
+  else if(st.overdue){cls='bad';txt='Unpaid · Overdue';}
   else if(st.dueToday){cls='warn';txt='Due today';}
   else if(st.dueSoon){cls='warn';txt='Due soon';}
-  else{cls='idle';txt='Pending';}
+  else{cls='idle';txt='Unpaid';}
   return '<span class="badge '+cls+'"><i></i>'+txt+'</span>';
 }
 const pill=t=>'<span class="pill">'+esc(t)+'</span>';
@@ -903,8 +1006,9 @@ function feeRow(x,who){
   const f=x.f,s=x.s,st=x.st,lp=lastPayDate(f);
   const title=who==='month'?'<span class="nm">'+monthLabel(f.month)+'</span>':'<span class="nm">'+esc(s.name)+'</span>'+pill(classLabel(s));
   let sub;
-  if(who==='month')sub=inr(f.amount)+' · '+(st.status==='paid'?'Paid '+fmtShort(lp):'Due '+fmtShort(f.dueDate));
-  else sub=inr(f.amount)+' · Due '+fmtShort(f.dueDate)+(st.status==='partial'?' · '+inr(st.remaining)+' left':'');
+  const cf=f.carriedIn>0?' + '+inr(f.carriedIn)+' earlier':'';
+  if(who==='month')sub=inr(f.amount)+cf+' · '+(st.status==='paid'?'Paid '+fmtShort(lp):'Due '+fmtShort(f.dueDate))+(st.status==='partial'?' · '+inr(st.remaining)+' left':'');
+  else sub=inr(f.amount)+cf+' · Due '+fmtShort(f.dueDate)+(st.status==='partial'?' · '+inr(st.remaining)+' left':'');
   const note=who==='month'?'':(lp?'<span class="row-note">'+(st.status==='paid'?'Paid ':'Last paid ')+fmtShort(lp)+'</span>':'');
   return '<div class="row" role="button" tabindex="0" data-act="openFee" '+attrs(s,f.month)+'>'
     +'<div class="row-main"><div class="row-title">'+title+'</div><div class="row-sub">'+sub+'</div></div>'
@@ -945,11 +1049,12 @@ Scr.dash={
     if(!S.students.length)return emptyStudents();
     const cur=TODAY.slice(0,7),soon=SOON();
     const sm=summarize(feesFor(cur),TODAY,soon);
+    const coll=collectedIn(S.students,cur);
     const live=D.fees.filter(f=>D.byId.has(f.studentId));
     const all=summarize(live,TODAY,soon);
     const earlier=sumBy(live.filter(f=>f.month<cur),f=>feeStatus(f,TODAY,soon).remaining);
     const active=S.students.filter(s=>s.active!==false).length;
-    const pct=sm.expected?Math.min(100,Math.round(sm.received/sm.expected*100)):0;
+    const pct=sm.expected?Math.min(100,Math.round(coll.amount/sm.expected*100)):0;
     const al=buildAlerts(S.students,TODAY,soon);
     const overdue=al.filter(a=>a.kind===0),dueSoon=al.filter(a=>a.kind>0);
     const paid=sorted(feesFor(cur).map(withSt).filter(x=>x.st.status==='paid'&&x.f.amount>0),(a,b)=>(lastPayDate(b.f)||'').localeCompare(lastPayDate(a.f)||''));
@@ -963,13 +1068,13 @@ Scr.dash={
     let h=notices();
     h+='<div class="tiles">'
       +tile('Total students',active,S.students.length>active?(S.students.length-active)+' inactive':'')
-      +tile('Expected this month',inr(sm.expected),monthLabel(cur))
-      +tile('Received this month',inr(sm.received),sm.paidN+' of '+sm.count+' fully paid','ok')
-      +tile('Pending fees',inr(sm.pending),earlier>0?'+ '+inr(earlier)+' overdue from earlier months':'This month',sm.pending>0?'bad':'')
+      +tile('Fees generated',inr(sm.expected),monthLabel(cur)+' · '+sm.count+' records')
+      +tile('Collected this month',inr(coll.amount),coll.count+(coll.count===1?' payment':' payments')+' received','ok')
+      +tile('Total outstanding',inr(all.pending),all.partialN+' partly paid · '+all.unpaidN+' unpaid'+(earlier>0?' · '+inr(earlier)+' from earlier months':''),all.pending>0?'bad':'')
       +tile('Fees due soon',all.soonN,all.soonN?inr(all.soonAmt)+' in the next '+soon+' days':'Nothing due in '+soon+' days',all.soonN?'warn':'')
       +tile('Students with pending fees',all.pendingStudents,all.pendingStudents?'Tap a name below to collect':'Everyone is up to date')
       +'</div>';
-    h+='<div class="prog"><div class="prog-t"><span>Collected this month</span><b>'+pct+'%</b></div><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct+'"><i style="width:'+pct+'%"></i></div></div>';
+    h+='<div class="prog"><div class="prog-t"><span>Collected vs fees generated</span><b>'+pct+'%</b></div><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct+'"><i style="width:'+pct+'%"></i></div></div>';
     h+=grp('bad','Overdue',overdue.length,sumBy(overdue,a=>a.st.remaining));
     h+=overdue.length?listOf(overdue.map(aRow)):'<div class="none">No overdue fees.</div>';
     h+=grp('warn','Due soon',dueSoon.length,sumBy(dueSoon,a=>a.st.remaining));
@@ -1027,9 +1132,7 @@ Scr.student=function(id){
       if(!s)return '<div class="none big">This student was removed.</div>';
       const fees=sorted(D.bySt.get(s.id)||[],(a,b)=>b.month.localeCompare(a.month)).map(withSt);
       const tPaid=sumBy(fees,x=>x.st.paid),tPend=sumBy(fees,x=>x.st.remaining),tOver=sumBy(fees,x=>x.st.overdue?x.st.remaining:0);
-      const pays=[];
-      fees.forEach(x=>x.f.payments.forEach(p=>pays.push({p,f:x.f})));
-      pays.sort((a,b)=>b.p.date.localeCompare(a.p.date)||b.p.id.localeCompare(a.p.id));
+      const pays=studentPayments(s).slice().reverse();
       const wa=s.mobile?waLink(s.mobile,'Hello'+(s.parent?' '+s.parent:'')+','):'';
       let h='<div class="card info-card"><dl class="kv">'
         +'<dt>Class</dt><dd>'+esc(classLabel(s))+(s.active===false?' '+pill('Inactive'):'')+'</dd>'
@@ -1041,16 +1144,19 @@ Scr.student=function(id){
         +'<dt>Joined</dt><dd>'+(s.joinDate?fmtLong(s.joinDate)+' '+s.joinDate.slice(0,4):'—')+'</dd>'
         +(s.notes?'<dt>Notes</dt><dd class="notes">'+esc(s.notes)+'</dd>':'')
         +'</dl></div>';
-      h+='<div class="tiles three">'+tile('Total paid',inr(tPaid),'','ok')+tile('Total pending',inr(tPend),'',tPend>0?'warn':'')+tile('Total overdue',inr(tOver),'',tOver>0?'bad':'')+'</div>';
+      h+='<div class="tiles three">'+tile('Total paid',inr(tPaid),'','ok')+tile('Outstanding',inr(tPend),'',tPend>0?'warn':'')+tile('Overdue',inr(tOver),'',tOver>0?'bad':'')+'</div>';
       h+='<div class="actions3"><button class="btn btn-ghost" data-act="editStudent" data-sid="'+esc(s.id)+'">Edit</button>'
         +'<button class="btn btn-ghost" data-act="toggleActive" data-sid="'+esc(s.id)+'">'+(s.active===false?'Mark active':'Mark inactive')+'</button>'
         +'<button class="btn btn-danger-ghost" data-act="askDeleteStudent" data-sid="'+esc(s.id)+'">Delete</button></div>';
       h+='<h2 class="sec">Fee history</h2>';
       h+=fees.length?listOf(fees.map(x=>feeRow(x,'month'))):'<div class="none">No fee records yet. The first one is created automatically.</div>';
       h+='<h2 class="sec">Payment history</h2>';
-      h+=pays.length?listOf(pays.map(x=>'<div class="row" role="button" tabindex="0" data-act="receipt" '+attrs(s,x.f.month)+' data-pid="'+esc(x.p.id)+'">'
-        +'<div class="row-main"><div class="row-title">'+fmtLong(x.p.date)+' '+x.p.date.slice(0,4)+'</div><div class="row-sub">'+monthLabel(x.f.month)+' fee · '+esc(x.p.mode)+(x.p.notes?' · '+esc(x.p.notes):'')+'</div></div>'
-        +'<div class="row-end"><b class="amt">'+inr(x.p.amount)+'</b><span class="row-note">Receipt</span></div></div>')):'<div class="none">No payments recorded yet.</div>';
+      h+=pays.length?listOf(pays.map(x=>{
+        const f=D.key.get(s.id+'|'+x.mk),info=receiptInfo(s,f,x.p),multi=info.alloc.length>1||(info.alloc[0]&&info.alloc[0].m!==x.mk);
+        return '<div class="row" role="button" tabindex="0" data-act="receipt" '+attrs(s,x.mk)+' data-pid="'+esc(x.p.id)+'">'
+        +'<div class="row-main"><div class="row-title">'+fmtLong(x.p.date)+' '+x.p.date.slice(0,4)+' · '+esc(receiptNo(x.p))+'</div><div class="row-sub">'
+        +(multi?esc(allocText(info.alloc)):monthLabel(x.mk)+' fee')+' · '+esc(x.p.mode)+(x.p.void?' · Cancelled':' · Balance after '+inr(info.balance))+'</div></div>'
+        +'<div class="row-end"><b class="amt'+(x.p.void?' void':'')+'">'+inr(x.p.amount)+'</b><span class="row-note">'+(x.p.void?'Cancelled':'Receipt')+'</span></div></div>';})):'<div class="none">No payments recorded yet.</div>';
       return h;
     }
   };
@@ -1132,7 +1238,8 @@ Scr.reports={
     const soon=SOON(),m=UI.month;
     const xs=feesFor(m).map(withSt);
     const sm=summarize(xs.map(x=>x.f),TODAY,soon);
-    const pct=sm.expected?Math.min(100,Math.round(sm.received/sm.expected*100)):0;
+    const coll=collectedIn(S.students,m),live=D.fees.filter(f=>D.byId.has(f.studentId)),allSm=summarize(live,TODAY,soon);
+    const pct=sm.expected?Math.min(100,Math.round(coll.amount/sm.expected*100)):0;
     const tr=trend(S.students,m,6,TODAY,soon),mx=Math.max(1,...tr.map(r=>r.expected));
     const pend=sorted(xs.filter(x=>x.st.remaining>0&&!x.st.overdue),(a,b)=>a.f.dueDate.localeCompare(b.f.dueDate)||a.s.name.localeCompare(b.s.name));
     const over=sorted(D.fees.filter(f=>D.byId.has(f.studentId)).map(withSt).filter(x=>x.st.overdue),(a,b)=>b.st.late-a.st.late||a.s.name.localeCompare(b.s.name));
@@ -1140,24 +1247,24 @@ Scr.reports={
     const students=sorted(S.students,(a,b)=>a.name.localeCompare(b.name));
     const rs=UI.rep&&D.byId.has(UI.rep)?UI.rep:'';
     let h='<h2 class="sec first">Fee collection · '+monthLabel(m)+'</h2>';
-    h+='<div class="tiles">'+tile('Expected',inr(sm.expected))+tile('Collected',inr(sm.received),pct+'% of expected','ok')+tile('Pending',inr(sm.pending),'',sm.pending>0?'warn':'')+tile('Overdue',inr(sm.overdueAmt),sm.overdueN+(sm.overdueN===1?' record':' records'),sm.overdueAmt>0?'bad':'')+'</div>';
-    h+='<div class="card"><div class="trend" role="img" aria-label="Collected versus expected fees for the last six months">'
+    h+='<div class="tiles">'+tile('Fees generated',inr(sm.expected),sm.count+' records')+tile('Cash collected',inr(coll.amount),coll.count+(coll.count===1?' payment':' payments')+' · '+pct+'% of fees generated','ok')
+      +tile('Total outstanding',inr(allSm.pending),'All months · '+allSm.partialN+' partly paid, '+allSm.unpaidN+' unpaid',allSm.pending>0?'warn':'')+tile('Overdue balance',inr(allSm.overdueAmt),allSm.overdueN+(allSm.overdueN===1?' fee':' fees')+' past due date',allSm.overdueAmt>0?'bad':'')+'</div>';
+    h+='<p class="hint pad">Cash collected counts only payments received in this month, once. Outstanding is what is still unpaid across all months; a balance carried forward stays under its own month and is not counted twice.</p>';
+    h+='<div class="card"><div class="trend" role="img" aria-label="Cash collected versus fees generated for the last six months">'
       +tr.map(r=>{const hh=Math.max(r.expected?6:2,Math.round(r.expected/mx*100)),fill=r.expected?Math.min(100,Math.round(r.received/r.expected*100)):0;
         return '<div class="tcol"><div class="tval">'+compact(r.received)+'</div><div class="tbar" style="height:'+hh+'px"><i style="height:'+fill+'%"></i></div><div class="tmon'+(r.month===m?' cur':'')+'">'+monthShort(r.month)+'</div></div>';}).join('')
-      +'</div><div class="legend"><span><i class="lg lg-a"></i>Collected</span><span><i class="lg lg-b"></i>Expected</span></div></div>';
+      +'</div><div class="legend"><span><i class="lg lg-a"></i>Collected</span><span><i class="lg lg-b"></i>Fees generated</span></div></div>';
     h+='<h2 class="sec">Class-wise collection</h2><div class="card">'+CLASSES.filter(c=>tot[c].n>0).map(c=>{
       const t=tot[c],p=t.expected?Math.min(100,Math.round(t.received/t.expected*100)):0;
       return '<div class="cw"><div class="cw-h"><b>'+(clsName(c))+'</b><span>'+inr(t.received)+' of '+inr(t.expected)+'</span></div><div class="bar"><i style="width:'+p+'%"></i></div></div>';
     }).join('')||'<div class="none">No fee records for this month.</div>';
     h+='</div>';
-    h+='<h2 class="sec">Pending fees · '+monthLabel(m)+'</h2>'+(pend.length?listOf(pend.map(x=>amtRow(x,false))):'<div class="none">Nothing pending.</div>');
+    h+='<h2 class="sec">Unpaid and partly paid · '+monthLabel(m)+'</h2>'+(pend.length?listOf(pend.map(x=>amtRow(x,false))):'<div class="none">Nothing pending.</div>');
     h+='<h2 class="sec">Overdue fees · all months</h2>'+(over.length?listOf(over.map(x=>amtRow(x,true))):'<div class="none">Nothing overdue.</div>');
     h+='<h2 class="sec">Student-wise payment history</h2><div class="fld"><label for="rep_student">Student</label><select id="rep_student" data-chg="repStudent"><option value="">Choose a student</option>'
       +students.map(s=>'<option value="'+esc(s.id)+'"'+(rs===s.id?' selected':'')+'>'+esc(s.name)+' · '+esc(classLabel(s))+'</option>').join('')+'</select></div>';
     if(rs){
-      const s=sget(rs),fs=D.bySt.get(rs)||[],pays=[];
-      fs.forEach(f=>f.payments.forEach(p=>pays.push({p,f})));
-      pays.sort((a,b)=>b.p.date.localeCompare(a.p.date));
+      const s=sget(rs),pays=studentPayments(s).filter(x=>isLive(x.p)).reverse().map(x=>({p:x.p,f:{month:x.mk}}));
       h+=pays.length?listOf(pays.map(x=>'<div class="row" role="button" tabindex="0" data-act="receipt" '+attrs(s,x.f.month)+' data-pid="'+esc(x.p.id)+'"><div class="row-main"><div class="row-title">'+fmtLong(x.p.date)+' '+x.p.date.slice(0,4)+'</div><div class="row-sub">'+monthLabel(x.f.month)+' · '+esc(x.p.mode)+'</div></div><div class="row-end"><b class="amt">'+inr(x.p.amount)+'</b></div></div>'))
         +'<div class="strip one"><div><span>Total paid</span><b class="c-ok">'+inr(sumBy(pays,x=>+x.p.amount))+'</b></div></div>':'<div class="none">No payments recorded for '+esc(s.name)+'.</div>';
     }
@@ -1281,31 +1388,40 @@ async function renderReceipt(c){
   rcText(g,'Date: '+c.issued,W-90,808,fb(600),38,RC.INK,'right');
 
   /* details */
-  const rows=[['Student Name',c.student],['Class',c.cls],['Parent / Guardian',c.parent],['Fee Month',c.month],['Payment Date',c.payDate],['Payment Mode',c.mode],['Payment Status',c.status]];
-  const x0=90,w0=W-180,rh=92,y0=860;
+  const rows=[['Student Name',c.student],['Class',c.cls],['Parent / Guardian',c.parent],[c.month.includes('+')?'Fee Months':'Fee Month',c.month],['Payment Date',c.payDate],['Payment Mode',c.mode],['Payment Status',c.status]];
+  const x0=90,w0=W-180,rh=80,y0=850;
   g.fillStyle=RC.CREAM;rcRound(g,x0,y0,w0,rh*rows.length,26);g.fill();
   g.save();rcRound(g,x0,y0,w0,rh*rows.length,26);g.clip();
   rows.forEach((r,i)=>{if(i%2===1){g.fillStyle='#FFE8CC';g.fillRect(x0,y0+i*rh,w0,rh);}});
   g.restore();
   g.lineWidth=7;g.strokeStyle=RC.INK;rcRound(g,x0,y0,w0,rh*rows.length,26);g.stroke();
   rows.forEach((r,i)=>{
-    const by=y0+i*rh+rh/2+14;
-    rcText(g,r[0],x0+44,by,fb(600),36,RC.MUTED,'left');
+    const by=y0+i*rh+rh/2+13;
+    rcText(g,r[0],x0+44,by,fb(600),34,RC.MUTED,'left');
     if(r[0]==='Payment Status'){
       const paid=r[1]==='Paid',txt=r[1];
-      g.font=fb(700).replace('%','40px');const tw=g.measureText(txt).width+56;
-      g.fillStyle=paid?RC.GREEN_SOFT:RC.AMBER_SOFT;rcRound(g,x0+w0-44-tw,y0+i*rh+16,tw,rh-32,30);g.fill();
-      rcText(g,txt,x0+w0-44-tw/2,by,fb(700),40,paid?RC.GREEN:RC.AMBER,'center');
-    }else rcText(g,r[1]||'—',x0+w0-44,by,fb(700),42,RC.INK,'right',w0-440);
+      g.font=fb(700).replace('%','38px');const tw=g.measureText(txt).width+56;
+      g.fillStyle=paid?RC.GREEN_SOFT:RC.AMBER_SOFT;rcRound(g,x0+w0-44-tw,y0+i*rh+14,tw,rh-28,28);g.fill();
+      rcText(g,txt,x0+w0-44-tw/2,by,fb(700),38,paid?RC.GREEN:RC.AMBER,'center');
+    }else rcText(g,r[1]||'—',x0+w0-44,by,fb(700),40,RC.INK,'right',w0-440);
   });
 
-  /* amount */
-  const ay=y0+rh*rows.length+50;
-  rcSlant(g,80,ay,W-160,170,26,RC.YELLOW);
-  g.lineWidth=7;g.strokeStyle=RC.INK;g.beginPath();g.moveTo(106,ay);g.lineTo(W-80,ay);g.lineTo(W-106,ay+170);g.lineTo(80,ay+170);g.closePath();g.stroke();
-  rcText(g,'Amount Paid',150,ay+104,fb(700),46,RC.INK,'left');
-  rcText(g,inr(c.amount),W-150,ay+120,FD,104,RC.INK,'right',700);
-  if(c.balance>0)rcText(g,'Balance due: '+inr(c.balance),W/2,ay+232,fb(700),42,RC.AMBER,'center');
+  /* amount actually received in this payment */
+  const ay=y0+rh*rows.length+36,ah=146;
+  rcSlant(g,80,ay,W-160,ah,26,RC.YELLOW);
+  g.lineWidth=7;g.strokeStyle=RC.INK;g.beginPath();g.moveTo(106,ay);g.lineTo(W-80,ay);g.lineTo(W-106,ay+ah);g.lineTo(80,ay+ah);g.closePath();g.stroke();
+  rcText(g,'Amount Received',150,ay+92,fb(700),44,RC.INK,'left');
+  rcText(g,inr(c.amount),W-150,ay+108,FD,100,RC.INK,'right',700);
+
+  /* what the payment did to the dues */
+  let ly=ay+ah+54;
+  rcText(g,'Total fee ('+c.feeLabel+')',x0+10,ly,fb(600),34,RC.MUTED,'left');
+  rcText(g,inr(c.feeAmount),x0+w0-10,ly,fb(700),36,RC.INK,'right');
+  if(c.prev>0){ly+=48;rcText(g,'Previous outstanding',x0+10,ly,fb(600),34,RC.MUTED,'left');rcText(g,inr(c.prev),x0+w0-10,ly,fb(700),36,RC.INK,'right');}
+  if(c.applied){ly+=48;rcText(g,'Applied to: '+c.applied,x0+10,ly,fb(600),32,RC.TEAL_D,'left',w0-20);}
+  ly+=62;
+  const owing=c.balance>0;
+  rcText(g,owing?'Outstanding balance after this payment: '+inr(c.balance):'Fully paid. No balance outstanding.',W/2,ly,fb(700),owing?40:38,owing?RC.AMBER:RC.GREEN,'center',w0);
 
   /* footer: teacher, qualifications, phone ribbon */
   const fy=1862;
@@ -1397,28 +1513,43 @@ function openStudentForm(id){
     +'<button class="btn btn-primary" type="submit">'+(s?'Save changes':'Add student')+'</button></form>');
 }
 
-/* Fee detail */
+/* Payments that touched a fee month: recorded in it, or recorded in a later month and applied back to it. */
+function paymentsTouching(s,f){
+  const seen=new Map();
+  for(const p of f.payments)seen.set(p.id,{p,mk:f.month});
+  for(const h of f.hits||[])if(!seen.has(h.p.id))seen.set(h.p.id,{p:h.p,mk:h.from});
+  return [...seen.values()].sort((a,b)=>b.p.date.localeCompare(a.p.date)||b.p.id.localeCompare(a.p.id));
+}
+function payRow(s,x,withActs){
+  const f=D.key.get(s.id+'|'+x.mk)||{month:x.mk,amount:0},p=x.p,info=receiptInfo(s,f,p),a=attrs(s,x.mk)+' data-pid="'+esc(p.id)+'"';
+  const multi=info.alloc.length>1||(info.alloc[0]&&info.alloc[0].m!==x.mk);
+  return '<div class="prow"><div><b'+(p.void?' class="void"':'')+'>'+inr(p.amount)+'</b> · '+esc(p.mode)+(p.void?' <span class="pill">Cancelled</span>':'')
+    +'<div class="row-sub">'+fmtDateFull(p.date)+' · '+esc(receiptNo(p))+(p.notes?' · '+esc(p.notes):'')+'</div>'
+    +(p.void?'':'<div class="row-sub">'+(multi?'Applied to '+esc(allocText(info.alloc))+' · ':'')+'Balance after: '+inr(info.balance)+'</div>')+'</div>'
+    +(withActs?'<div class="inline-acts">'+(p.void?'':'<button class="mini" data-act="receipt" '+a+'>Receipt</button><button class="mini danger" data-act="askDelPay" '+a+'>Cancel</button>')+'</div>':'')+'</div>';
+}
 function openFee(sidv,m){
   const s=sget(sidv),f=D.key.get(sidv+'|'+m);
   if(!s||!f)return;
-  const st=feeStatus(f,TODAY,SOON()),lp=lastPayment(f);
-  const pays=sorted(f.payments,(a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id));
-  const owing=st.remaining>0;
+  const st=feeStatus(f,TODAY,SOON()),lp=lastPayment(f),pv=payView(s,m);
+  const pays=paymentsTouching(s,f);
+  const owing=pv.remaining>0;
   const wa=(owing&&s.mobile)?Messaging.prepare(Messaging.compose(s,f,st,TUI())):null;
   const lr=(f.reminders||[]).slice(-1)[0];
   const a=attrs(s,m);
   let h='<div class="fee-h"><div><div class="nm">'+esc(s.name)+'</div><div class="row-sub">'+esc(classLabel(s))+' · '+monthLabel(m)+'</div></div>'+badge(st)+'</div>';
   h+='<div class="tiles three">'+tile('Fee',inr(f.amount))+tile('Paid',inr(st.paid),'','ok')+tile('Remaining',inr(st.remaining),'',st.remaining>0?(st.overdue?'bad':'warn'):'')+'</div>';
   h+='<dl class="kv tight"><dt>Due date</dt><dd>'+fmtDateFull(f.dueDate)+'</dd>'
-    +'<dt>Payment date</dt><dd>'+(lp?fmtDateFull(lp.date)+(lp.mode?' · '+esc(lp.mode):''):'Not paid yet')+'</dd>'
+    +(f.carriedIn>0?'<dt>Carried in</dt><dd>'+inr(f.carriedIn)+'<div class="row-sub">From '+esc(f.carryParts.map(x=>monthLabel(x.m)+' '+inr(x.a)).join(', '))+'</div></dd>'
+      +'<dt>Total payable</dt><dd>'+inr(f.payable)+' <span class="row-sub">('+inr(f.amount)+' fee + '+inr(f.carriedIn)+' earlier)</span></dd>'
+      +'<dt>Paid this month</dt><dd>'+inr(f.recv)+'</dd><dt>Balance</dt><dd><b>'+inr(f.balance)+'</b></dd>':'')
+    +(owing&&pv.prev>0&&!(f.carriedIn>0&&Math.abs(pv.remaining-f.balance)<0.01)?'<dt>Due now</dt><dd><b>'+inr(pv.remaining)+'</b> <span class="row-sub">including '+inr(pv.prev)+' from earlier months</span></dd>':'')
+    +'<dt>Last payment</dt><dd>'+(lp?fmtDateFull(lp.date)+(lp.mode?' · '+esc(lp.mode):''):'Not paid yet')+'</dd>'
     +(lr?'<dt>Last reminder</dt><dd>'+fmtLong(lr.date)+' · WhatsApp</dd>':'')
     +(f.note?'<dt>Note</dt><dd class="notes">'+esc(f.note)+'</dd>':'')+'</dl>';
-  if(pays.length){
-    h+='<h3 class="sub-h">Payments</h3><div class="list">'+pays.map(p=>'<div class="prow"><div><b>'+inr(p.amount)+'</b> · '+esc(p.mode)+'<div class="row-sub">'+fmtDateFull(p.date)+' · '+esc(receiptNo(p))+(p.notes?' · '+esc(p.notes):'')+'</div></div>'
-      +'<div class="inline-acts"><button class="mini" data-act="receipt" '+a+' data-pid="'+esc(p.id)+'">Receipt</button><button class="mini danger" data-act="askDelPay" '+a+' data-pid="'+esc(p.id)+'">Delete</button></div></div>').join('')+'</div>';
-  }
+  if(pays.length)h+='<h3 class="sub-h">Payments</h3><div class="list">'+pays.map(x=>payRow(s,x,true)).join('')+'</div>';
   h+='<div class="stack top-gap">';
-  if(owing)h+='<button class="btn btn-primary" data-act="pay" '+a+'>'+(st.paid>0?'Add payment':'Mark as Paid')+'</button>';
+  if(owing)h+='<button class="btn btn-primary" data-act="pay" '+a+'>'+(st.paid>0||f.recv>0?'Add payment':'Mark as Paid')+'</button>';
   if(wa)h+='<a class="btn btn-wa" href="'+esc(wa.url)+'" target="_blank" rel="noopener" data-act="waSent" '+a+'>Send WhatsApp Reminder</a>';
   else if(owing)h+='<div class="hint center">Add the parent’s mobile number to send WhatsApp reminders.</div>';
   h+='<button class="btn btn-ghost" data-act="editFee" '+a+'>Edit fee amount or due date</button>';
@@ -1439,18 +1570,37 @@ function openFeeEdit(sidv,m){
 }
 
 /* Payment */
-const leftText=(rem,v)=>v>rem+0.001?'That is more than the '+inr(rem)+' due.':(rem-v>0.001?'Remaining after this payment: '+inr(rem-v):'This fee will be fully paid.');
+let PAYKEY=null;   /* one id per open payment sheet: pressing Save twice can never record two payments */
+function payPreviewHtml(s,m,v){
+  const pv=payView(s,m);
+  if(!pv)return '';
+  if(!(v>0))return 'Enter the amount received.';
+  if(v>pv.remaining+0.001)return '<span class="c-bad">That is more than the '+inr(pv.remaining)+' due.</span>';
+  const r=allocatePayment(pv.fees,v,m),left=round2(pv.remaining-v);
+  return (r.alloc.length>1||(r.alloc[0]&&r.alloc[0].m!==m)?'Goes to: '+esc(allocText(r.alloc))+'<br>':'')
+    +(left>0.001?'Remaining after this payment: <b>'+inr(left)+'</b> (Partially Paid)':'<b>Everything due will be fully paid.</b>');
+}
 function openPay(sidv,m){
-  const s=sget(sidv),f=D.key.get(sidv+'|'+m);
-  if(!s||!f)return;
-  const st=feeStatus(f,TODAY,SOON());
-  if(st.remaining<=0){toast('This month is already paid.');openFee(sidv,m);return;}
+  const s=sget(sidv);
+  const pv=s&&payView(s,m);
+  if(!pv)return;
+  if(pv.remaining<=0){toast('Nothing is due for this month.');openFee(sidv,m);return;}
+  PAYKEY=newId('p');
   const mode=lastMode();
-  sheet('Mark as paid',
-    '<div class="sum"><b>'+esc(s.name)+'</b> · '+esc(classLabel(s))+'<div class="row-sub">'+monthLabel(m)+' fee '+inr(f.amount)+(st.paid?' · already paid '+inr(st.paid):'')+'</div></div>'
-    +'<form data-form="pay" data-sid="'+esc(sidv)+'" data-m="'+m+'" data-rem="'+st.remaining+'" novalidate>'
+  const row=(k,v,cls)=>'<dt>'+k+'</dt><dd'+(cls?' class="'+cls+'"':'')+'>'+v+'</dd>';
+  sheet('Record payment',
+    '<div class="sum"><b>'+esc(s.name)+'</b> · '+esc(classLabel(s))+'<div class="row-sub">'+monthLabel(m)+' fee</div></div>'
+    +'<dl class="kv tight">'+row('Total fee',inr(pv.fee))
+    +(pv.prev>0?row('Previous outstanding',inr(pv.prev)):'')
+    +row('Total payable',inr(pv.payable))
+    +row('Already paid',inr(pv.paid))
+    +row('Remaining balance','<b>'+inr(pv.remaining)+'</b>')+'</dl>'
+    +'<form data-form="pay" data-sid="'+esc(sidv)+'" data-m="'+m+'" data-rem="'+pv.remaining+'" novalidate>'
+    +'<div class="fld"><div class="lbl" id="pt_l">Payment type</div><div class="radios" role="radiogroup" aria-labelledby="pt_l">'
+    +'<label><input type="radio" name="ptype" value="full" data-chg="payType" checked><span>Full payment</span></label>'
+    +'<label><input type="radio" name="ptype" value="partial" data-chg="payType"><span>Partial payment</span></label></div></div>'
+    +fld('pay_amount','Amount received now (₹)','<input id="pay_amount" name="amount" type="number" inputmode="decimal" min="1" step="any" value="'+pv.remaining+'" readonly data-in="payAmt">','<span id="pay_left" aria-live="polite">'+payPreviewHtml(s,m,pv.remaining)+'</span>')
     +fld('pay_date','Payment date','<input id="pay_date" name="date" type="date" value="'+TODAY+'">')
-    +fld('pay_amount','Amount paid (₹)','<input id="pay_amount" name="amount" type="number" inputmode="decimal" min="1" step="any" value="'+st.remaining+'" data-in="payAmt">','<span id="pay_left" aria-live="polite">'+leftText(st.remaining,st.remaining)+'</span>')
     +'<div class="fld"><div class="lbl" id="pm_l">Payment mode</div><div class="radios" role="radiogroup" aria-labelledby="pm_l">'
     +MODES.map(x=>'<label><input type="radio" name="mode" value="'+x+'"'+(x===mode?' checked':'')+'><span>'+x+'</span></label>').join('')+'</div></div>'
     +fld('pay_notes','Notes','<input id="pay_notes" name="notes" placeholder="Optional">')
@@ -1459,20 +1609,31 @@ function openPay(sidv,m){
 function openPaid(sidv,m,pid){
   const s=sget(sidv),f=D.key.get(sidv+'|'+m);
   if(!s||!f)return;
-  const p=f.payments.find(x=>x.id===pid),st=feeStatus(f,TODAY,SOON());
+  const p=f.payments.find(x=>x.id===pid);
+  if(!p)return;
+  const info=receiptInfo(s,f,p);
+  const multi=info.alloc.length>1||(info.alloc[0]&&info.alloc[0].m!==m);
   sheet('Payment saved',
     '<div class="done"><div class="done-ic">'+'<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>'
-    +'<div class="done-t">'+inr(p?p.amount:0)+' received</div><div class="row-sub">'+esc(s.name)+' · '+monthLabel(m)+(p?' · '+esc(p.mode):'')+'</div>'+(p?'<div class="row-sub">Receipt '+esc(receiptNo(p))+'</div>':'')
-    +'<div class="done-s">'+(st.remaining>0?'Remaining: '+inr(st.remaining):'Fee fully paid')+'</div></div>'
+    +'<div class="done-t">'+inr(p.amount)+' received</div><div class="row-sub">'+esc(s.name)+' · '+(multi?esc(allocText(info.alloc)):monthLabel(m))+' · '+esc(p.mode)+'</div><div class="row-sub">Receipt '+esc(receiptNo(p))+'</div>'
+    +'<div class="done-s">'+(info.balance>0?'Outstanding balance: '+inr(info.balance)+' (Partially Paid)':'Fully paid. Nothing outstanding.')+'</div></div>'
     +'<div class="stack"><button class="btn btn-primary" data-act="receipt" data-sid="'+esc(sidv)+'" data-m="'+m+'" data-pid="'+esc(pid)+'">Get receipt</button><button class="btn btn-ghost" data-act="closeSheet">Done</button></div>');
 }
 
 /* Receipt */
+function feeMonthsText(alloc,m){
+  const ms=alloc.length?alloc.map(x=>x.m):[m];
+  if(ms.length===1)return monthLabel(ms[0]);
+  const yrs=new Set(ms.map(x=>x.slice(0,4)));
+  return yrs.size===1?ms.map(monthShort).join(' + ')+' '+ms[0].slice(0,4):ms.map(monthLabel).join(' + ');
+}
 function receiptCtx(s,f,p){
-  const info=receiptInfo(f,p);
+  const info=receiptInfo(s,f,p);
+  const multi=info.alloc.length>1||(info.alloc[0]&&info.alloc[0].m!==f.month);
   return {tuition:TUI(),teacher:S.settings.teacherName||'',qual:S.settings.teacherQual||'',phone:S.settings.phone||'',
-    no:receiptNo(p),issued:fmtDateFull(p.issued||p.date),student:s.name,cls:classLabel(s),parent:s.parent||'—',month:monthLabel(f.month),
-    payDate:fmtDateFull(p.date),mode:p.mode,status:info.status,amount:+p.amount,balance:info.balance};
+    no:receiptNo(p),issued:fmtDateFull(p.issued||p.date),student:s.name,cls:classLabel(s),parent:s.parent||'—',month:feeMonthsText(info.alloc,f.month),
+    payDate:fmtDateFull(p.date),mode:p.mode,status:info.status,amount:+p.amount,balance:info.balance,
+    feeLabel:monthLabel(f.month),feeAmount:info.feeAmount,prev:info.prev,applied:multi?allocText(info.alloc):''};
 }
 function rcLookup(el){
   const s=sget(el.dataset.sid),f=D.key.get(el.dataset.sid+'|'+el.dataset.m),p=f&&f.payments.find(x=>x.id===el.dataset.pid);
@@ -1485,6 +1646,7 @@ function rcFileName(x){
 async function openReceipt(sidv,m,pid){
   const s=sget(sidv),f=D.key.get(sidv+'|'+m),p=f&&f.payments.find(x=>x.id===pid);
   if(!s||!p)return;
+  if(p.void){toast('This payment was cancelled, so it has no receipt.');return;}
   const c=receiptCtx(s,f,p),a=attrs(s,m)+' data-pid="'+esc(pid)+'"';
   const wa=s.mobile?waLink(s.mobile,receiptText(s,f,p,TUI())):'';
   sheet('Fee receipt '+c.no,
@@ -1622,10 +1784,10 @@ const ACT={
     const sidv=el.dataset.sid,m=el.dataset.m,pid=el.dataset.pid;
     const s=sget(sidv),f=D.key.get(sidv+'|'+m),p=f&&f.payments.find(x=>x.id===pid);
     if(!p)return;
-    confirmSheet({title:'Delete this payment?',
-      msg:esc(inr(p.amount))+' paid by '+esc(s.name)+' on '+esc(fmtLong(p.date))+' ('+esc(p.mode)+') will be removed and the '+esc(monthLabel(m))+' fee will show the balance again.',
-      label:'Delete payment',tone:'danger',
-      fn:async()=>{closeSheet();try{await patchStudent(sidv,{fees:{[m]:{payments:f.payments.filter(x=>x.id!==pid)}}});toast('Payment deleted');openFee(sidv,m);}catch(e){}}});
+    confirmSheet({title:'Cancel this payment?',
+      msg:esc(inr(p.amount))+' received from '+esc(s.name)+' on '+esc(fmtLong(p.date))+' ('+esc(p.mode)+', receipt '+esc(receiptNo(p))+') will be cancelled and the dues it settled will show as unpaid again. The record stays in the history marked Cancelled, and the receipt number is not reused.',
+      label:'Cancel payment',tone:'danger',
+      fn:async()=>{closeSheet();try{await patchStudent(sidv,{fees:{[m]:{payments:f.payments.map(x=>x.id===pid?{...x,void:{date:TODAY}}:x)}}});toast('Payment cancelled');openFee(sidv,m);}catch(e){}}});
   },
   confirmYes:()=>{const o=CONFIRM;if(o&&o.fn)Promise.resolve(o.fn()).catch(()=>{});},
   confirmAlt:()=>{const o=CONFIRM;if(o&&o.alt)Promise.resolve(o.alt.fn()).catch(()=>{});},
@@ -1689,12 +1851,18 @@ const IN={
     renderBody();
   },
   payAmt:el=>{
-    const form=el.closest('form'),rem=+form.dataset.rem,v=+el.value||0,t=$('#pay_left');
-    if(t)t.textContent=leftText(rem,v);
+    const form=el.closest('form'),t=$('#pay_left');
+    if(t)t.innerHTML=payPreviewHtml(sget(form.dataset.sid),form.dataset.m,+el.value||0);
   },
   _:0
 };
 const CHG={
+  payType:el=>{
+    const form=el.closest('form'),inp=form.elements.amount,full=el.value==='full';
+    inp.readOnly=full;
+    if(full)inp.value=form.dataset.rem;else{inp.value='';inp.focus();}
+    const t=$('#pay_left');if(t)t.innerHTML=payPreviewHtml(sget(form.dataset.sid),form.dataset.m,+inp.value||0);
+  },
   feesCls:el=>{UI.f.fees.cls=el.value;const c=$('#chips');if(c)c.innerHTML=statusChips();renderBody();},
   repStudent:el=>{UI.rep=el.value;renderBody();},
   cfCheck:el=>{const b=$('#cf_yes');if(b)b.disabled=!el.checked;},
@@ -1738,22 +1906,33 @@ const FORMS={
     }catch(e){busy(f,false);}
   },
   pay:async f=>{
-    const sidv=f.dataset.sid,m=f.dataset.m,fee=D.key.get(sidv+'|'+m);
-    if(!fee)return;
-    const st=feeStatus(fee,TODAY,SOON());
-    const date=f.elements.date.value,amount=Math.round(+f.elements.amount.value*100)/100,mode=f.elements.mode.value,notes=f.elements.notes.value.trim();
+    const sidv=f.dataset.sid,m=f.dataset.m,s=sget(sidv),fee=D.key.get(sidv+'|'+m);
+    if(!s||!fee)return;
     const err=t=>showErr('pay_err',t);
+    const date=f.elements.date.value,mode=f.elements.mode.value,notes=f.elements.notes.value.trim();
+    const full=f.elements.ptype.value==='full';
+    const pv=payView(s,m);
+    const amount=full?pv.remaining:Math.round(+f.elements.amount.value*100)/100;
     if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return err('Choose the payment date.');
-    if(!(amount>0))return err('Enter the amount received.');
-    if(amount>st.remaining+0.001)return err('That is more than the '+inr(st.remaining)+' due. Lower the amount.');
+    if(!full&&!(amount>0))return err('Enter the amount received.');
+    /* a second press, or a retry, of the same sheet must not record the payment again */
+    const id=PAYKEY||newId('p');
+    if(studentPayments(s).some(x=>x.p.id===id)){closeSheet();toast('This payment was already saved.');return;}
+    const plan=planPayment(s,m,amount);     /* checks the amount against what is due right now and splits it oldest-first */
+    if(!plan.ok)return err(plan.error);
     const seq=nextReceiptNo(S.students,S.settings.receiptSeq);
-    const p={id:newId('p'),no:fmtReceiptNo(seq),issued:TODAY,date,amount,mode,notes};
+    const p={id,no:fmtReceiptNo(seq),issued:TODAY,date,amount,mode,notes,alloc:plan.alloc};
+    const before=fee.payments;
     busy(f,true);
     try{
-      await patchStudent(sidv,{fees:{[m]:{payments:[...fee.payments,p]}}});
+      await patchStudent(sidv,{fees:{[m]:{payments:[...before,p]}}});
       try{await saveSettings({receiptSeq:seq});}catch(e){}
-      setLastMode(mode);closeSheet();openPaid(sidv,m,p.id);
-    }catch(e){busy(f,false);}
+      setLastMode(mode);PAYKEY=null;closeSheet();openPaid(sidv,m,p.id);
+    }catch(e){
+      /* nothing was stored: take the payment back out so the screen matches the saved data */
+      applyLocal(sidv,{fees:{[m]:{payments:before}}});renderBody();
+      busy(f,false);
+    }
   },
   feeEdit:async f=>{
     const sidv=f.dataset.sid,m=f.dataset.m,fee=D.key.get(sidv+'|'+m);
