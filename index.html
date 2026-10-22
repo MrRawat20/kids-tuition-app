@@ -277,6 +277,20 @@ html.native .top{top:0;padding-top:env(safe-area-inset-top,0px)}
 
 .sheet-body .kv.tight{margin-bottom:14px}
 
+/* remaining balance card: the biggest thing on the payment sheet */
+.balcard{margin:6px 0 18px;padding:16px 16px 18px;border:3px solid var(--edge);border-radius:18px;background:var(--surface);box-shadow:0 4px 0 var(--edge)}
+.balcard{color:var(--ink)}.balcard.bad{background:var(--bad-soft)}.balcard.warn{background:var(--warn-soft)}.balcard.ok{background:var(--ok-soft)}
+.bc-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:5px 0;font-size:16px}
+.bc-row span{color:var(--muted)}.bc-row b{font-size:18px}
+.bc-main{margin-top:10px;padding-top:12px;border-top:3px solid var(--edge);text-align:center}
+.bc-k{font-size:15px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.bc-v{font-family:var(--f-display);font-size:clamp(40px,12vw,56px);line-height:1.1;margin:4px 0}
+.bc-s{font-size:17px;font-weight:700}
+.bc-tag{display:inline-block;padding:3px 12px;border:2px solid var(--edge);border-radius:999px;background:var(--surface);color:var(--ink)}
+.bc-note{margin-top:10px;font-size:15px;text-align:center}
+.bc-err{font-weight:700;color:var(--bad)}
+@media (min-width:700px){.balcard{padding:20px 24px 22px}.bc-row{font-size:18px}}
+
 </style>
 <header class="top" id="top"><div class="wrap top-in"><div class="top-t"><div class="eyebrow">Kids Tuition Classes</div><h1><span>Dashboard</span></h1></div></div></header>
 <main class="wrap" id="view"><div class="loading"><div class="spin"></div>Opening your register…</div></main>
@@ -310,6 +324,33 @@ function dueDateFor(month,dueDay){
   const want=Math.round(+dueDay)||10;
   const d=Math.min(Math.max(1,want),daysInMonth(y,m));
   return y+'-'+pad(m)+'-'+pad(d);
+}
+/* ---------- due dates from the joining date ----------
+   A student can have a first due date = joining date + N days (5, 7 or any number). Later months keep the same day of the month
+   (shorter months use their last day), counted from the joining month, so each month has exactly one fee and one due date.
+   Students without a first due date (older records, or "fixed day") keep the old rule: the same day every month. */
+function addDays(date,n){
+  const [y,m,d]=date.split('-').map(Number);
+  const t=new Date(Date.UTC(y,m-1,d+Math.round(+n||0)));
+  return t.getUTCFullYear()+'-'+pad(t.getUTCMonth()+1)+'-'+pad(t.getUTCDate());
+}
+function monthsBetween(a,b){const [y1,m1]=a.split('-').map(Number),[y2,m2]=b.split('-').map(Number);return (y2-y1)*12+(m2-m1);}
+function addMonthsClamp(date,n){
+  const [y,m,d]=date.split('-').map(Number),t=addMonths(y+'-'+pad(m),n),[yy,mm]=t.split('-').map(Number);
+  return t+'-'+pad(Math.min(d,daysInMonth(yy,mm)));
+}
+const isDate=v=>/^\d{4}-\d{2}-\d{2}$/.test(v||'')&&!isNaN(Date.parse(v));
+function firstDueDate(joinDate,days){return addDays(joinDate,days);}
+function scheduledDue(s,month){
+  if(s.dueAnchor&&isDate(s.dueAnchor)&&isDate(s.joinDate))return addMonthsClamp(s.dueAnchor,monthsBetween(s.joinDate.slice(0,7),month));
+  return dueDateFor(month,s.dueDay);
+}
+function dueRuleText(s){
+  if(s.dueAnchor&&isDate(s.dueAnchor)){
+    const n=diffDays(s.joinDate,s.dueAnchor);
+    return {main:ordinal(+s.dueAnchor.slice(8))+' of every month',sub:(n>=0?n+(n===1?' day':' days')+' after joining':'Set by hand')+' · first due '+fmtDateFull(s.dueAnchor)};
+  }
+  return {main:ordinal(s.dueDay||10)+' of every month',sub:''};
 }
 function diffDays(a,b){
   const n=s=>{const [y,m,d]=s.split('-').map(Number);return Date.UTC(y,m-1,d)/864e5;};
@@ -422,7 +463,9 @@ function payView(s,m){
   if(!f)return null;
   const prev=round2(sumBy(fees.filter(x=>x.month<m),owedOf));
   const own=owedOf(f);
-  return {fee:f.amount,prev,payable:round2(f.amount+prev),paid:paidOf(f),remaining:round2(prev+own),ownRemaining:own,fees};
+  const remaining=round2(prev+own);
+  return {fee:f.amount,prev,payable:round2(f.amount+prev),paid:paidOf(f),remaining,ownRemaining:own,fees,
+    carried:f.carriedIn,totalPayable:f.payable,prevPaid:Math.max(0,round2(f.payable-remaining))};
 }
 /* Check an amount and work out where it goes. */
 function planPayment(s,m,amount){
@@ -464,7 +507,7 @@ function missingFees(students,today){
     const start=join>floor?join:floor;
     const have=s.fees||{},add={};
     for(let m=start;m<=cur;m=addMonths(m,1)){
-      if(!have[m])add[m]={amount:+s.monthlyFee||0,dueDate:dueDateFor(m,s.dueDay),payments:[]};
+      if(!have[m])add[m]={amount:+s.monthlyFee||0,dueDate:scheduledDue(s,m),payments:[]};
     }
     if(Object.keys(add).length)out.push({id:s.id,fees:add});
   }
@@ -476,8 +519,8 @@ function repriceFees(s,today){
   for(const m of Object.keys(s.fees||{})){
     if(m<cur)continue;
     const f=s.fees[m];
-    if((f.payments||[]).length)continue;
-    const amount=+s.monthlyFee||0,dueDate=dueDateFor(m,s.dueDay);
+    const amount=+s.monthlyFee||0,dueDate=scheduledDue(s,m);
+    if((f.payments||[]).length){if(f.dueDate!==dueDate)patch[m]={dueDate};continue;}   /* paid fees keep their amount; only the due date moves */
     if(f.amount!==amount||f.dueDate!==dueDate)patch[m]={amount,dueDate};
   }
   return patch;
@@ -638,6 +681,36 @@ function receiptText(s,fee,p,tuition){
   return lines.join('\n');
 }
 
+/* ---------- fee due notice ----------
+   A notice only states what is owed right now. It is worked out from the fee and payments and never writes anything. */
+function noticeInfo(s,m,today){
+  const v=payView(s,m);
+  if(!v)return null;
+  const f=v.fees.find(x=>x.month===m);
+  const remaining=Math.max(0,v.remaining),payable=v.totalPayable;
+  const paid=remaining<=0?payable:v.prevPaid;
+  const overdue=remaining>0&&f.dueDate<today;
+  const status=remaining<=0?'Paid':(paid>0?'Partially Paid':'Unpaid');
+  return {month:m,fee:f.amount,prev:f.carriedIn,payable,paid,remaining,dueDate:f.dueDate,status,overdue,
+    label:status+(overdue?' · Overdue':''),carryParts:f.carryParts};
+}
+function noticeMessage(s,n){
+  const to='Dear '+(s.parent||'Parent')+',',ml=monthLabel(n.month);
+  if(n.remaining<=0)return to+' thank you. The tuition fee for '+ml+' has been paid in full. No amount is due.';
+  return to+' this is a gentle reminder that '+inr(n.remaining)+' remains outstanding for the '+ml+' tuition fee'
+    +(n.prev>0?' (including earlier dues)':'')+'. '
+    +(n.overdue?'The due date was '+fmtDateFull(n.dueDate)+'. Kindly arrange payment at the earliest.':'Kindly arrange payment by '+fmtDateFull(n.dueDate)+'.')+' Thank you.';
+}
+function noticeText(s,n,tuition,instructions){
+  const L=['FEE DUE NOTICE',(tuition||TUITION),'','Student Name: '+s.name+' ('+classLabel(s)+')','Fee Month: '+monthLabel(n.month),
+    'Monthly Fee: '+inr(n.fee)];
+  if(n.prev>0)L.push('Previous Outstanding: '+inr(n.prev),'Total Payable: '+inr(n.payable));
+  if(n.paid>0)L.push('Amount Paid: '+inr(n.paid));
+  L.push(n.remaining>0?'Remaining Fee Due: '+inr(n.remaining):'Remaining Fee Due: ₹0','Due Date: '+fmtDateFull(n.dueDate),'Status: '+n.label,'',noticeMessage(s,n));
+  if(instructions&&String(instructions).trim())L.push('','Payment details: '+String(instructions).trim());
+  return L.join('\n');
+}
+
 /* ---------- exports ---------- */
 function csvEscape(v){v=v==null?'':String(v);return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
 function toCsv(rows){return '﻿'+rows.map(r=>r.map(csvEscape).join(',')).join('\r\n');}
@@ -718,7 +791,7 @@ function sampleStudents(today){
 }
 
 if(typeof module!=='undefined'&&module.exports){
-  module.exports={round2,isLive,allocOf,allocatePayment,payView,planPayment,studentPayments,collectedIn,outstandingTotal,owedOf,allocText,MONTHS,CLASSES,MODES,TUITION,TAGLINE,DEFAULT_BATCHES,clsName,fmtTime,batchText,fmtDateFull,isLegacyClass,fmtReceiptNo,receiptSeqOf,maxReceiptSeq,nextReceiptNo,missingReceiptNos,receiptInfo,pad,ymd,addMonths,daysInMonth,dueDateFor,diffDays,weekday,monthLabel,monthShort,fmtLong,fmtShort,ordinal,inr,compact,deepMerge,classKey,classLabel,matchStudent,flattenFees,paidOf,lastPayment,lastPayDate,feeStatus,statusLabel,missingFees,repriceFees,alertText,alertDetail,buildAlerts,summarize,classTotals,trend,receiptNo,waNumber,waLink,reminderText,receiptText,csvEscape,toCsv,ledgerRows,pendingRows,paymentRows,studentRows,sampleStudents,sumBy};
+  module.exports={noticeInfo,noticeMessage,noticeText,addDays,monthsBetween,addMonthsClamp,isDate,firstDueDate,scheduledDue,dueRuleText,round2,isLive,allocOf,allocatePayment,payView,planPayment,studentPayments,collectedIn,outstandingTotal,owedOf,allocText,MONTHS,CLASSES,MODES,TUITION,TAGLINE,DEFAULT_BATCHES,clsName,fmtTime,batchText,fmtDateFull,isLegacyClass,fmtReceiptNo,receiptSeqOf,maxReceiptSeq,nextReceiptNo,missingReceiptNos,receiptInfo,pad,ymd,addMonths,daysInMonth,dueDateFor,diffDays,weekday,monthLabel,monthShort,fmtLong,fmtShort,ordinal,inr,compact,deepMerge,classKey,classLabel,matchStudent,flattenFees,paidOf,lastPayment,lastPayDate,feeStatus,statusLabel,missingFees,repriceFees,alertText,alertDetail,buildAlerts,summarize,classTotals,trend,receiptNo,waNumber,waLink,reminderText,receiptText,csvEscape,toCsv,ledgerRows,pendingRows,paymentRows,studentRows,sampleStudents,sumBy};
 }
 
 /* Fee reminder delivery.
@@ -754,7 +827,7 @@ const Messaging={
 };
 
 /* ---------- state ---------- */
-const DEFAULT_SETTINGS={tuitionName:TUITION,teacherName:'Prerana Khandelwal',teacherQual:'PGDCA, M.Com',phone:'+91 8824262842',soonDays:3,lastBackup:null,receiptSeq:0};
+const DEFAULT_SETTINGS={tuitionName:TUITION,teacherName:'Prerana Khandelwal',teacherQual:'PGDCA, M.Com',phone:'+91 8824262842',soonDays:3,lastBackup:null,receiptSeq:0,dueInterval:5,payInstructions:''};
 const S={students:[],settings:{...DEFAULT_SETTINGS},loaded:false,definitive:false,shown:false,settingsLoaded:false};
 const D={fees:[],byId:new Map(),bySt:new Map(),key:new Map()};
 const UI={tab:'dash',month:null,sub:null,paidAll:false,rep:'',f:{students:{q:'',cls:'all',batch:'all'},fees:{q:'',cls:'all',status:'all'}}};
@@ -1140,7 +1213,7 @@ Scr.student=function(id){
         +'<dt>Parent</dt><dd>'+esc(s.parent||'Not added')+'</dd>'
         +'<dt>Mobile</dt><dd>'+(s.mobile?'<span class="sel">'+esc(s.mobile)+'</span><span class="inline-acts"><button class="mini" data-act="copy" data-v="'+esc(s.mobile)+'">Copy</button>'+(wa?'<a class="mini" href="'+esc(wa)+'" target="_blank" rel="noopener">WhatsApp</a>':'')+'</span>':'Not added')+'</dd>'
         +'<dt>Monthly fee</dt><dd>'+inr(s.monthlyFee)+'</dd>'
-        +'<dt>Due date</dt><dd>'+ordinal(s.dueDay||10)+' of every month</dd>'
+        +'<dt>Due date</dt><dd>'+dueRuleText(s).main+(dueRuleText(s).sub?'<div class="row-sub">'+dueRuleText(s).sub+'</div>':'')+'</dd>'
         +'<dt>Joined</dt><dd>'+(s.joinDate?fmtLong(s.joinDate)+' '+s.joinDate.slice(0,4):'—')+'</dd>'
         +(s.notes?'<dt>Notes</dt><dd class="notes">'+esc(s.notes)+'</dd>':'')
         +'</dl></div>';
@@ -1353,22 +1426,17 @@ function rcText(g,t,x,y,font,size,color,align,maxW){
   g.fillText(t,x,y);
 }
 
-async function renderReceipt(c){
-  await loadReceiptFonts();
-  const W=RC.W,H=RC.H,cv=document.createElement('canvas');
-  cv.width=W;cv.height=H;
-  const g=cv.getContext('2d');
-  g.fillStyle='#fff';g.fillRect(0,0,W,H);
-
+/* orange header band with the title ribbons and the tagline (shared by receipts and fee due notices) */
+function rcHeader(g,W,tuition){
   /* header band: orange with the banner's corner circles, teal and yellow ribbons */
   g.fillStyle=RC.ORANGE;g.fillRect(0,0,W,520);
   g.fillStyle=RC.TEAL;g.beginPath();g.arc(70,0,250,0,Math.PI*2);g.fill();
   g.fillStyle=RC.YELLOW;g.beginPath();g.arc(20,150,140,0,Math.PI*2);g.fill();
   g.strokeStyle=RC.INK;g.lineWidth=7;
   for(let i=0;i<4;i++){g.beginPath();g.arc(1000+i*62,64,15,0,Math.PI*2);g.stroke();}
-  const words=(c.tuition||'Kids Tuition Classes').trim().split(/\s+/);
+  const words=(tuition||'Kids Tuition Classes').trim().split(/\s+/);
   const last=words.length>1?words.pop():'',first=words.join(' ');
-  const top1=last?first:c.tuition,top2=last;
+  const top1=last?first:tuition,top2=last;
   rcSlant(g,370,110,740,160,34,RC.TEAL);
   rcText(g,top1,370+34+(740-34)/2,222,FD,100,'#fff','center',640);
   if(top2){
@@ -1379,6 +1447,16 @@ async function renderReceipt(c){
 
   /* tagline */
   rcText(g,'“'+TAGLINE+'”',W/2,600,FD,50,RC.INK,'center',W-140);
+
+}
+async function renderReceipt(c){
+  await loadReceiptFonts();
+  const W=RC.W,H=RC.H,cv=document.createElement('canvas');
+  cv.width=W;cv.height=H;
+  const g=cv.getContext('2d');
+  g.fillStyle='#fff';g.fillRect(0,0,W,H);
+
+  rcHeader(g,W,c.tuition);
 
   /* title row */
   rcSlant(g,80,700,540,30,10,RC.YELLOW);
@@ -1469,6 +1547,84 @@ async function receiptPdf(c){
   return pdfFromJpeg(new Uint8Array(await r.blob.arrayBuffer()),r.w,r.h,'Fee receipt '+c.no);
 }
 
+/* ---------- fee due notice picture and PDF (a statement of what is owed, never a receipt) ---------- */
+function rcWrap(g,text,font,size,maxW){
+  g.font=font.replace('%',size+'px');
+  const lines=[];let cur='';
+  for(const w of String(text).split(/\s+/)){
+    const t=cur?cur+' '+w:w;
+    if(g.measureText(t).width>maxW&&cur){lines.push(cur);cur=w;}else cur=t;
+  }
+  if(cur)lines.push(cur);
+  return lines;
+}
+async function renderNotice(c){
+  await loadReceiptFonts();
+  const W=RC.W,H=RC.H,cv=document.createElement('canvas');
+  cv.width=W;cv.height=H;
+  const g=cv.getContext('2d');
+  g.fillStyle='#fff';g.fillRect(0,0,W,H);
+  rcHeader(g,W,c.tuition);
+
+  rcSlant(g,80,700,640,30,10,RC.YELLOW);
+  rcText(g,'FEE DUE NOTICE',90,740,FD,92,RC.INK,'left',680);
+  rcText(g,'Date: '+c.issued,W-90,740,fb(600),38,RC.INK,'right');
+
+  const paid=c.status==='Paid';
+  const rows=[['Student Name',c.student+(c.cls?' · '+c.cls:'')],['Fee Month',c.month],['Due Date',c.dueDate],['Payment Status',c.label]];
+  const x0=90,w0=W-180,rh=80,y0=850;
+  g.fillStyle=RC.CREAM;rcRound(g,x0,y0,w0,rh*rows.length,26);g.fill();
+  g.save();rcRound(g,x0,y0,w0,rh*rows.length,26);g.clip();
+  rows.forEach((r,i)=>{if(i%2===1){g.fillStyle='#FFE8CC';g.fillRect(x0,y0+i*rh,w0,rh);}});
+  g.restore();
+  g.lineWidth=7;g.strokeStyle=RC.INK;rcRound(g,x0,y0,w0,rh*rows.length,26);g.stroke();
+  rows.forEach((r,i)=>{
+    const by=y0+i*rh+rh/2+13;
+    rcText(g,r[0],x0+44,by,fb(600),34,RC.MUTED,'left');
+    if(r[0]==='Payment Status'){
+      g.font=fb(700).replace('%','38px');const tw=g.measureText(r[1]).width+56;
+      g.fillStyle=paid?RC.GREEN_SOFT:RC.AMBER_SOFT;rcRound(g,x0+w0-44-tw,y0+i*rh+14,tw,rh-28,28);g.fill();
+      rcText(g,r[1],x0+w0-44-tw/2,by,fb(700),38,paid?RC.GREEN:RC.AMBER,'center');
+    }else rcText(g,r[1]||'—',x0+w0-44,by,fb(700),40,RC.INK,'right',w0-440);
+  });
+
+  let ly=y0+rh*rows.length+54;
+  const line=(k,v,bold)=>{rcText(g,k,x0+10,ly,fb(bold?700:600),bold?36:34,bold?RC.INK:RC.MUTED,'left');rcText(g,v,x0+w0-10,ly,fb(700),36,RC.INK,'right');ly+=50;};
+  line('Monthly Fee ('+c.month+')',inr(c.fee));
+  if(c.prev>0){line('Previous Outstanding',inr(c.prev));line('Total Payable',inr(c.payable),true);}
+  if(c.paid>0&&!paid)line('Amount Already Paid',inr(c.paid));
+
+  const by=ly-4,bh=130;
+  rcSlant(g,80,by,W-160,bh,26,paid?RC.GREEN_SOFT:RC.YELLOW);
+  g.lineWidth=7;g.strokeStyle=RC.INK;g.beginPath();g.moveTo(106,by);g.lineTo(W-80,by);g.lineTo(W-106,by+bh);g.lineTo(80,by+bh);g.closePath();g.stroke();
+  rcText(g,paid?'Balance Due':'Remaining Fee Due',150,by+82,fb(700),44,RC.INK,'left');
+  rcText(g,inr(c.remaining),W-150,by+100,FD,96,paid?RC.GREEN:RC.INK,'right',620);
+
+  let my=by+bh+58;
+  rcWrap(g,c.message,fb(500),34,w0-20).forEach(t=>{rcText(g,t,x0+10,my,fb(500),34,RC.INK,'left');my+=44;});
+  if(c.instr){
+    my+=8;
+    rcWrap(g,'Payment details: '+c.instr,fb(600),32,w0-20).slice(0,2).forEach(t=>{rcText(g,t,x0+10,my,fb(600),32,RC.TEAL_D,'left');my+=42;});
+  }
+
+  const fy=1880;
+  if(c.teacher)rcText(g,c.teacher,W/2,fy,FD,56,RC.INK,'center',900);
+  if(c.phone){rcSlant(g,W/2-300,fy+22,600,76,20,RC.YELLOW);rcText(g,c.phone,W/2,fy+78,fb(700),46,RC.INK,'center',520);}
+  rcText(g,'This is a fee due notice, not a payment receipt.',W/2,H-34,fb(500),30,RC.MUTED,'center');
+  g.fillStyle=RC.TEAL;g.beginPath();g.arc(W,H,190,0,Math.PI*2);g.fill();
+  g.fillStyle=RC.YELLOW;g.beginPath();g.arc(W-30,H+30,110,0,Math.PI*2);g.fill();
+  return cv;
+}
+async function noticeImage(c){
+  const cv=await renderNotice(c);
+  const blob=await new Promise(res=>cv.toBlob(res,'image/jpeg',0.92));
+  return {blob,url:cv.toDataURL('image/jpeg',0.8),w:cv.width,h:cv.height};
+}
+async function noticePdf(c){
+  const r=await noticeImage(c);
+  return pdfFromJpeg(new Uint8Array(await r.blob.arrayBuffer()),r.w,r.h,'Fee due notice '+c.student);
+}
+
 /* ---------- sheets (bottom panels) ---------- */
 function sheet(title,html){
   $('#sheetRoot').innerHTML='<div class="scrim" data-act="closeSheet"></div>'
@@ -1496,7 +1652,11 @@ function confirmSheet(o){
 /* Student form */
 function openStudentForm(id){
   const s=id?sget(id):null;
-  const v=s||{name:'',cls:'',parent:'',mobile:'',monthlyFee:'',joinDate:TODAY,dueDay:10,notes:'',batchId:''};
+  const defDays=Math.max(0,Math.round(+S.settings.dueInterval)||5);
+  const v=s||{name:'',cls:'',parent:'',mobile:'',monthlyFee:'',joinDate:TODAY,dueDay:10,notes:'',batchId:'',dueMode:'after_join',dueDays:defDays,dueAnchor:addDays(TODAY,defDays)};
+  const anchored=v.dueAnchor&&isDate(v.dueAnchor)&&v.dueMode!=='day';
+  const days=anchored?Math.max(0,diffDays(v.joinDate,v.dueAnchor)):defDays;
+  const ivl=!anchored?'day':(days===5||days===7?String(days):'custom');
   const legacy=s&&isLegacyClass(s),bs=batches();
   sheet(s?'Edit student':'Add student',
     '<form data-form="student" data-id="'+esc(id||'')+'" novalidate autocomplete="off">'
@@ -1506,8 +1666,12 @@ function openStudentForm(id){
     +fld('sf_parent','Parent or guardian name','<input id="sf_parent" name="parent" value="'+esc(v.parent)+'" autocapitalize="words">')
     +fld('sf_mobile','Parent mobile number','<input id="sf_mobile" name="mobile" type="tel" inputmode="tel" value="'+esc(v.mobile)+'" placeholder="10-digit number">')
     +fld('sf_fee','Monthly fee (₹)','<input id="sf_fee" name="fee" type="number" inputmode="numeric" min="0" step="1" value="'+esc(v.monthlyFee)+'" placeholder="2000">')
-    +fld('sf_due','Fee due on day','<input id="sf_due" name="due" type="number" inputmode="numeric" min="1" max="31" step="1" value="'+esc(v.dueDay)+'">','Due on this day every month. Shorter months use their last day.')
-    +fld('sf_join','Joining date','<input id="sf_join" name="join" type="date" value="'+esc(v.joinDate)+'">','Monthly fees start from the joining month, going back at most 2 months.')
+    +fld('sf_join','Joining date','<input id="sf_join" name="join" type="date" value="'+esc(v.joinDate)+'" data-chg="dueCalc">','Monthly fees start from the joining month, going back at most 2 months.')
+    +fld('sf_int','Fee due date','<select id="sf_int" name="interval" data-chg="dueCalc">'
+      +[['5','5 days after joining'],['7','7 days after joining'],['custom','Custom number of days after joining'],['day','Same day every month (fixed)']].map(o=>'<option value="'+o[0]+'"'+(ivl===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select>')
+    +'<div id="sf_customBox"'+(ivl==='custom'?'':' hidden')+'>'+fld('sf_days','Number of days after joining','<input id="sf_days" name="days" type="number" inputmode="numeric" min="0" max="365" step="1" value="'+days+'" data-in="dueCalc">')+'</div>'
+    +'<div id="sf_firstBox"'+(ivl==='day'?' hidden':'')+'>'+fld('sf_first','First fee due date','<input id="sf_first" name="first" type="date" value="'+esc(anchored?v.dueAnchor:addDays(v.joinDate||TODAY,days))+'" data-chg="dueManual">','Worked out from the joining date. Change it with the date picker if needed. Later months fall on the same day.')+'</div>'
+    +'<div id="sf_dayBox"'+(ivl==='day'?'':' hidden')+'>'+fld('sf_due','Fee due on day','<input id="sf_due" name="due" type="number" inputmode="numeric" min="1" max="31" step="1" value="'+esc(v.dueDay)+'">','Due on this day every month. Shorter months use their last day.')+'</div>'
     +fld('sf_notes','Notes','<textarea id="sf_notes" name="notes" rows="2" placeholder="Optional">'+esc(v.notes)+'</textarea>')
     +'<div class="err" id="sf_err" role="alert" hidden></div>'
     +'<button class="btn btn-primary" type="submit">'+(s?'Save changes':'Add student')+'</button></form>');
@@ -1552,6 +1716,7 @@ function openFee(sidv,m){
   if(owing)h+='<button class="btn btn-primary" data-act="pay" '+a+'>'+(st.paid>0||f.recv>0?'Add payment':'Mark as Paid')+'</button>';
   if(wa)h+='<a class="btn btn-wa" href="'+esc(wa.url)+'" target="_blank" rel="noopener" data-act="waSent" '+a+'>Send WhatsApp Reminder</a>';
   else if(owing)h+='<div class="hint center">Add the parent’s mobile number to send WhatsApp reminders.</div>';
+  h+='<button class="btn btn-ghost" data-act="notice" '+a+'>Share fee due notice</button>';
   h+='<button class="btn btn-ghost" data-act="editFee" '+a+'>Edit fee amount or due date</button>';
   if(!(UI.sub&&UI.sub.type==='student'&&UI.sub.id===s.id))h+='<button class="btn btn-ghost" data-act="openStudent" data-sid="'+esc(s.id)+'">Open student profile</button>';
   h+='</div>';
@@ -1566,19 +1731,35 @@ function openFeeEdit(sidv,m){
     +fld('fe_amount','Fee for this month (₹)','<input id="fe_amount" name="amount" type="number" inputmode="numeric" min="0" step="1" value="'+f.amount+'">',paidOf(f)>0?'Already paid '+inr(paidOf(f))+'. The fee cannot go below this.':'')
     +fld('fe_due','Due date','<input id="fe_due" name="due" type="date" value="'+f.dueDate+'">')
     +fld('fe_note','Note','<input id="fe_note" name="note" value="'+esc(f.note)+'" placeholder="Optional, e.g. discount given">')
+    +'<label class="check"><input type="checkbox" name="later"><span>Use this day of the month for later fees too</span></label>'
     +'<div class="err" id="fe_err" role="alert" hidden></div><button class="btn btn-primary" type="submit">Save</button></form>');
 }
 
 /* Payment */
 let PAYKEY=null;   /* one id per open payment sheet: pressing Save twice can never record two payments */
+/* The balance card: figures and status in words, with the remaining balance as the biggest thing on the sheet. */
+function balanceCard(o){
+  const paidAll=o.after<=0.001;
+  const label=paidAll?'Paid':(o.paidBefore+o.now>0.001?'Partially Paid':'Unpaid');
+  const cls=paidAll?'ok':(label==='Partially Paid'?'warn':'bad');
+  const mark=paidAll?'✓ ':'⚠ ';
+  const row=(k,v)=>'<div class="bc-row"><span>'+k+'</span><b>'+v+'</b></div>';
+  return '<div class="balcard '+cls+'" role="status" aria-live="polite">'
+    +row('Total payable',inr(o.payable))+row('Previously paid',inr(o.paidBefore))+row('Payment received now',inr(o.now))
+    +'<div class="bc-main"><div class="bc-k">Remaining balance</div><div class="bc-v">'+inr(Math.max(0,o.after))+'</div>'
+    +'<div class="bc-s"><span class="bc-tag">'+mark+label+'</span>'+(paidAll?' · ₹0 outstanding':'')+'</div></div>'
+    +(o.note?'<div class="bc-note">'+o.note+'</div>':'')+'</div>';
+}
 function payPreviewHtml(s,m,v){
   const pv=payView(s,m);
   if(!pv)return '';
-  if(!(v>0))return 'Enter the amount received.';
-  if(v>pv.remaining+0.001)return '<span class="c-bad">That is more than the '+inr(pv.remaining)+' due.</span>';
-  const r=allocatePayment(pv.fees,v,m),left=round2(pv.remaining-v);
-  return (r.alloc.length>1||(r.alloc[0]&&r.alloc[0].m!==m)?'Goes to: '+esc(allocText(r.alloc))+'<br>':'')
-    +(left>0.001?'Remaining after this payment: <b>'+inr(left)+'</b> (Partially Paid)':'<b>Everything due will be fully paid.</b>');
+  v=round2(v);
+  const over=v>pv.remaining+0.001;
+  const val=over?0:v;
+  const r=allocatePayment(pv.fees,val,m);
+  const split=val>0&&(r.alloc.length>1||(r.alloc[0]&&r.alloc[0].m!==m))?'Goes to: '+esc(allocText(r.alloc)):'';
+  return balanceCard({payable:pv.totalPayable,paidBefore:pv.prevPaid,now:val,after:round2(pv.remaining-val),
+    note:over?'<span class="bc-err">That is more than the '+inr(pv.remaining)+' due. Lower the amount.</span>':split});
 }
 function openPay(sidv,m){
   const s=sget(sidv);
@@ -1587,19 +1768,16 @@ function openPay(sidv,m){
   if(pv.remaining<=0){toast('Nothing is due for this month.');openFee(sidv,m);return;}
   PAYKEY=newId('p');
   const mode=lastMode();
-  const row=(k,v,cls)=>'<dt>'+k+'</dt><dd'+(cls?' class="'+cls+'"':'')+'>'+v+'</dd>';
+  const row=(k,v)=>'<dt>'+k+'</dt><dd>'+v+'</dd>';
   sheet('Record payment',
-    '<div class="sum"><b>'+esc(s.name)+'</b> · '+esc(classLabel(s))+'<div class="row-sub">'+monthLabel(m)+' fee</div></div>'
-    +'<dl class="kv tight">'+row('Total fee',inr(pv.fee))
-    +(pv.prev>0?row('Previous outstanding',inr(pv.prev)):'')
-    +row('Total payable',inr(pv.payable))
-    +row('Already paid',inr(pv.paid))
-    +row('Remaining balance','<b>'+inr(pv.remaining)+'</b>')+'</dl>'
+    '<div class="sum"><b>'+esc(s.name)+'</b> · '+esc(classLabel(s))+'<div class="row-sub">'+monthLabel(m)+' fee · due '+fmtDateFull(D.key.get(sidv+'|'+m).dueDate)+'</div></div>'
+    +'<dl class="kv tight">'+row('Monthly fee',inr(pv.fee))+(pv.carried>0?row('Previous outstanding',inr(pv.carried)):'')+'</dl>'
     +'<form data-form="pay" data-sid="'+esc(sidv)+'" data-m="'+m+'" data-rem="'+pv.remaining+'" novalidate>'
     +'<div class="fld"><div class="lbl" id="pt_l">Payment type</div><div class="radios" role="radiogroup" aria-labelledby="pt_l">'
     +'<label><input type="radio" name="ptype" value="full" data-chg="payType" checked><span>Full payment</span></label>'
     +'<label><input type="radio" name="ptype" value="partial" data-chg="payType"><span>Partial payment</span></label></div></div>'
-    +fld('pay_amount','Amount received now (₹)','<input id="pay_amount" name="amount" type="number" inputmode="decimal" min="1" step="any" value="'+pv.remaining+'" readonly data-in="payAmt">','<span id="pay_left" aria-live="polite">'+payPreviewHtml(s,m,pv.remaining)+'</span>')
+    +fld('pay_amount','Amount received now (₹)','<input id="pay_amount" name="amount" type="number" inputmode="decimal" min="1" step="any" value="'+pv.remaining+'" readonly data-in="payAmt">')
+    +'<div id="pay_left">'+payPreviewHtml(s,m,pv.remaining)+'</div>'
     +fld('pay_date','Payment date','<input id="pay_date" name="date" type="date" value="'+TODAY+'">')
     +'<div class="fld"><div class="lbl" id="pm_l">Payment mode</div><div class="radios" role="radiogroup" aria-labelledby="pm_l">'
     +MODES.map(x=>'<label><input type="radio" name="mode" value="'+x+'"'+(x===mode?' checked':'')+'><span>'+x+'</span></label>').join('')+'</div></div>'
@@ -1611,13 +1789,15 @@ function openPaid(sidv,m,pid){
   if(!s||!f)return;
   const p=f.payments.find(x=>x.id===pid);
   if(!p)return;
-  const info=receiptInfo(s,f,p);
+  const info=receiptInfo(s,f,p),n=noticeInfo(s,m,TODAY);
   const multi=info.alloc.length>1||(info.alloc[0]&&info.alloc[0].m!==m);
   sheet('Payment saved',
     '<div class="done"><div class="done-ic">'+'<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>'
-    +'<div class="done-t">'+inr(p.amount)+' received</div><div class="row-sub">'+esc(s.name)+' · '+(multi?esc(allocText(info.alloc)):monthLabel(m))+' · '+esc(p.mode)+'</div><div class="row-sub">Receipt '+esc(receiptNo(p))+'</div>'
-    +'<div class="done-s">'+(info.balance>0?'Outstanding balance: '+inr(info.balance)+' (Partially Paid)':'Fully paid. Nothing outstanding.')+'</div></div>'
-    +'<div class="stack"><button class="btn btn-primary" data-act="receipt" data-sid="'+esc(sidv)+'" data-m="'+m+'" data-pid="'+esc(pid)+'">Get receipt</button><button class="btn btn-ghost" data-act="closeSheet">Done</button></div>');
+    +'<div class="done-t">'+inr(p.amount)+' received</div><div class="row-sub">'+esc(s.name)+' · '+(multi?esc(allocText(info.alloc)):monthLabel(m))+' · '+esc(p.mode)+'</div><div class="row-sub">Receipt '+esc(receiptNo(p))+'</div></div>'
+    +balanceCard({payable:n.payable,paidBefore:Math.max(0,round2(n.paid-p.amount)),now:+p.amount,after:n.remaining})
+    +'<div class="stack"><button class="btn btn-primary" data-act="receipt" data-sid="'+esc(sidv)+'" data-m="'+m+'" data-pid="'+esc(pid)+'">Get receipt</button>'
+    +(n.remaining>0?'<button class="btn btn-ghost" data-act="notice" data-sid="'+esc(sidv)+'" data-m="'+m+'">Share fee due notice</button>':'')
+    +'<button class="btn btn-ghost" data-act="closeSheet">Done</button></div>');
 }
 
 /* Receipt */
@@ -1662,6 +1842,48 @@ async function openReceipt(sidv,m,pid){
   }catch(e){console.error(e);const w=$('#rc_wait');if(w)w.textContent='Could not prepare the receipt preview.';}
 }
 
+/* Fee due notice: a statement of what is owed now. It only reads the fee; it never records or changes a payment. */
+function noticeCtx(s,m){
+  const n=noticeInfo(s,m,TODAY);
+  return {...n,tuition:TUI(),teacher:S.settings.teacherName||'',phone:S.settings.phone||'',issued:fmtDateFull(TODAY),student:s.name,cls:classLabel(s),
+    month:monthLabel(m),dueDate:fmtDateFull(n.dueDate),message:noticeMessage(s,n),instr:S.settings.payInstructions||''};
+}
+function ntLookup(el){const s=sget(el.dataset.sid);return s&&D.key.get(el.dataset.sid+'|'+el.dataset.m)?{s,m:el.dataset.m,c:noticeCtx(s,el.dataset.m)}:null;}
+const ntFileName=x=>'Fee-Due-Notice-'+(x.s.name.replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'')||'student')+'-'+x.m+'.pdf';
+async function openNotice(sidv,m){
+  const s=sget(sidv);
+  if(!s||!D.key.get(sidv+'|'+m))return;
+  const c=noticeCtx(s,m),a=attrs(s,m);
+  const wa=s.mobile?waLink(s.mobile,noticeText(s,c,TUI(),c.instr)):'';
+  sheet('Fee due notice',
+    '<img class="rc-img" id="rc_img" alt="Fee due notice for '+esc(c.student)+', '+esc(c.month)+'" width="148" height="210" hidden>'
+    +'<div class="rc-wait" id="rc_wait"><div class="spin"></div>Preparing notice…</div>'
+    +'<p class="hint pad">This is a reminder of what is owed. It is not a receipt and does not record any payment.</p>'
+    +'<div class="stack"><button class="btn btn-primary" data-act="ntPdf" '+a+'>Download PDF</button>'
+    +'<button class="btn btn-ghost" data-act="ntShare" '+a+'>Share PDF (WhatsApp, print…)</button>'
+    +(wa?'<a class="btn btn-wa" href="'+esc(wa)+'" target="_blank" rel="noopener">Send notice on WhatsApp</a>':'<div class="hint center">Add the parent’s mobile number to send on WhatsApp.</div>')
+    +'<button class="btn btn-ghost" data-act="ntCopy" '+a+'>Copy notice text</button></div>');
+  try{
+    const r=await noticeImage(c),img=$('#rc_img'),w=$('#rc_wait');
+    if(img&&w){img.src=r.url;img.hidden=false;w.remove();}
+  }catch(e){console.error(e);const w=$('#rc_wait');if(w)w.textContent='Could not prepare the notice preview.';}
+}
+async function ntSend(el,share){
+  const x=ntLookup(el);
+  if(!x)return;
+  toast('Preparing PDF…');
+  let pdf;
+  try{pdf=await noticePdf(x.c);}catch(e){console.error(e);toast('Could not create the PDF. Please try again.');return;}
+  const name=ntFileName(x);
+  if(share){
+    try{
+      const file=new File([pdf],name,{type:'application/pdf'});
+      if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'Fee due notice'});return;}
+    }catch(e){if(e&&e.name==='AbortError')return;}
+  }
+  if(await saveFile(name,pdf))toast(share?'Saved. Attach the PDF in WhatsApp.':'Notice saved');
+}
+
 /* Settings and batch timings */
 function batchSection(){
   const bs=batches();
@@ -1680,6 +1902,8 @@ function openSettings(){
     +fld('st_teacher','Teacher name (on receipts)','<input id="st_teacher" name="teacher" value="'+esc(S.settings.teacherName)+'" autocapitalize="words">')
     +fld('st_qual','Qualifications (on receipts)','<input id="st_qual" name="qual" value="'+esc(S.settings.teacherQual)+'">')
     +fld('st_phone','Contact number (on receipts)','<input id="st_phone" name="phone" type="tel" inputmode="tel" value="'+esc(S.settings.phone)+'">')
+    +fld('st_ivl','Default due date for new students (days after joining)','<input id="st_ivl" name="ivl" type="number" inputmode="numeric" min="0" max="365" step="1" value="'+esc(S.settings.dueInterval==null?5:S.settings.dueInterval)+'">','New students get this many days after their joining date, and you can change it for each student.')
+    +fld('st_pay','Payment instructions (shown on fee due notices)','<textarea id="st_pay" name="payinfo" rows="2" placeholder="e.g. UPI: yourname@upi">'+esc(S.settings.payInstructions||'')+'</textarea>')
     +fld('st_soon','Show “due soon” alerts','<select id="st_soon" name="soon">'+[1,2,3,4,5,7].map(n=>'<option value="'+n+'"'+(SOON()===n?' selected':'')+'>'+n+(n===1?' day':' days')+' before the due date</option>').join('')+'</select>')
     +'<button class="btn btn-primary" type="submit">Save settings</button></form>'
     +batchSection()
@@ -1719,6 +1943,8 @@ async function restoreAll(data){
     const ds=data.settings||{},o={};
     ['tuitionName','teacherName','teacherQual','phone'].forEach(k=>{if(typeof ds[k]==='string')o[k]=ds[k];});
     if(+ds.soonDays>0)o.soonDays=+ds.soonDays;
+    if(ds.dueInterval!=null&&+ds.dueInterval>=0)o.dueInterval=+ds.dueInterval;
+    if(typeof ds.payInstructions==='string')o.payInstructions=ds.payInstructions;
     if(Array.isArray(ds.batches))o.batches=ds.batches.filter(b=>b&&b.id&&b.start&&b.end);
     o.receiptSeq=Math.max(+ds.receiptSeq||0,+S.settings.receiptSeq||0,maxReceiptSeq(S.students,0));
     await saveSettings(o);
@@ -1737,6 +1963,10 @@ const ACT={
   openStudent:el=>{closeSheet();go(UI.tab,{type:'student',id:el.dataset.sid});},
   openFee:el=>openFee(el.dataset.sid,el.dataset.m),
   pay:el=>openPay(el.dataset.sid,el.dataset.m),
+  notice:el=>openNotice(el.dataset.sid,el.dataset.m),
+  ntPdf:el=>ntSend(el,false),
+  ntShare:el=>ntSend(el,true),
+  ntCopy:el=>{const x=ntLookup(el);if(x)copyText(noticeText(x.s,x.c,TUI(),x.c.instr));},
   receipt:el=>openReceipt(el.dataset.sid,el.dataset.m,el.dataset.pid),
   editFee:el=>openFeeEdit(el.dataset.sid,el.dataset.m),
   mprev:()=>{UI.month=addMonths(UI.month,-1);renderView();},
@@ -1802,7 +2032,7 @@ const ACT={
   },
   backup:async()=>{
     const st=S.settings,payload={app:'tuition-fee-manager',version:2,exportedAt:new Date().toISOString(),
-      settings:{tuitionName:st.tuitionName,teacherName:st.teacherName,teacherQual:st.teacherQual,phone:st.phone,soonDays:st.soonDays,batches:batches(),receiptSeq:maxReceiptSeq(S.students,st.receiptSeq)},students:S.students.map(clean)};
+      settings:{tuitionName:st.tuitionName,teacherName:st.teacherName,teacherQual:st.teacherQual,phone:st.phone,soonDays:st.soonDays,dueInterval:st.dueInterval,payInstructions:st.payInstructions||'',batches:batches(),receiptSeq:maxReceiptSeq(S.students,st.receiptSeq)},students:S.students.map(clean)};
     if(await saveFile('tuition-fee-backup-'+TODAY+'.json',new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}))){
       toast('Backup saved');
       try{await saveSettings({lastBackup:TODAY});}catch(e){}
@@ -1850,6 +2080,7 @@ const IN={
     if(UI.tab==='fees'){const c=$('#chips');if(c)c.innerHTML=statusChips();}
     renderBody();
   },
+  dueCalc:el=>CHG.dueCalc(el),
   payAmt:el=>{
     const form=el.closest('form'),t=$('#pay_left');
     if(t)t.innerHTML=payPreviewHtml(sget(form.dataset.sid),form.dataset.m,+el.value||0);
@@ -1857,6 +2088,20 @@ const IN={
   _:0
 };
 const CHG={
+  dueCalc:el=>{
+    const f=el.closest('form'),sel=f.elements.interval.value,custom=$('#sf_customBox'),first=$('#sf_firstBox'),day=$('#sf_dayBox');
+    if(custom)custom.hidden=sel!=='custom';
+    if(first)first.hidden=sel==='day';
+    if(day)day.hidden=sel!=='day';
+    if(sel==='day')return;
+    const join=f.elements.join.value;
+    if(el.name==='join'&&f.elements.first.dataset.manual==='1')return;   /* a hand-picked date is kept when only the joining date moves */
+    if(el.name!=='join')f.elements.first.dataset.manual='';
+    const n=sel==='custom'?Math.max(0,Math.round(+f.elements.days.value)||0):+sel;
+    if(sel!=='custom'&&f.elements.days)f.elements.days.value=n;
+    if(isDate(join))f.elements.first.value=addDays(join,n);
+  },
+  dueManual:el=>{el.dataset.manual='1';},
   payType:el=>{
     const form=el.closest('form'),inp=form.elements.amount,full=el.value==='full';
     inp.readOnly=full;
@@ -1879,15 +2124,25 @@ const CHG={
 const FORMS={
   student:async f=>{
     const g=n=>f.elements[n].value.trim();
-    const name=g('name'),cls=g('cls'),fee=+g('fee'),due=Math.round(+g('due')),join=g('join'),mobile=g('mobile');
+    const name=g('name'),cls=g('cls'),fee=+g('fee'),join=g('join'),mobile=g('mobile'),ivl=g('interval');
     const err=t=>showErr('sf_err',t);
     if(!name)return err('Enter the student’s name.');
     if(!CLASSES.includes(cls))return err('Choose the class (PG to Class 8).');
     if(!(fee>0))return err('Enter the monthly fee.');
-    if(!(due>=1&&due<=31))return err('The due day must be between 1 and 31.');
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(join))return err('Choose the joining date.');
+    if(!isDate(join))return err('Choose the joining date.');
+    let due,sched;
+    if(ivl==='day'){
+      due=Math.round(+g('due'));
+      if(!(due>=1&&due<=31))return err('The due day must be between 1 and 31.');
+      sched={dueMode:'day',dueDays:null,dueAnchor:null,dueDay:due};
+    }else{
+      const first=g('first');
+      if(!isDate(first))return err('Choose the first fee due date.');
+      if(first<join)return err('The due date cannot be before the joining date.');
+      sched={dueMode:'after_join',dueDays:diffDays(join,first),dueAnchor:first,dueDay:+first.slice(8)};
+    }
     if(mobile&&mobile.replace(/\D/g,'').length<10)return err('The mobile number looks too short.');
-    const base={name,cls,clsOther:'',batchId:g('batch'),parent:g('parent'),mobile,monthlyFee:fee,joinDate:join,dueDay:due,notes:g('notes')};
+    const base={name,cls,clsOther:'',batchId:g('batch'),parent:g('parent'),mobile,monthlyFee:fee,joinDate:join,...sched,notes:g('notes')};
     const id=f.dataset.id;
     busy(f,true);
     try{
@@ -1943,7 +2198,15 @@ const FORMS={
     if(amount<paidOf(fee))return err('The fee cannot be lower than the '+inr(paidOf(fee))+' already paid.');
     if(!/^\d{4}-\d{2}-\d{2}$/.test(due))return err('Choose the due date.');
     busy(f,true);
-    try{await patchStudent(sidv,{fees:{[m]:{amount,dueDate:due,note}}});toast('Fee updated');openFee(sidv,m);}
+    try{
+      const patch={fees:{[m]:{amount,dueDate:due,note}}};
+      if(f.elements.later&&f.elements.later.checked){
+        const s2={...sget(sidv),dueMode:'day',dueAnchor:null,dueDay:+due.slice(8)};
+        Object.assign(patch,{dueMode:'day',dueAnchor:null,dueDays:null,dueDay:s2.dueDay});
+        patch.fees={...repriceFees(s2,TODAY),...patch.fees};   /* later unpaid months follow; this month keeps the date just chosen */
+      }
+      await patchStudent(sidv,patch);toast('Fee updated');openFee(sidv,m);
+    }
     catch(e){busy(f,false);}
   },
   batch:async f=>{
@@ -1962,7 +2225,7 @@ const FORMS={
   },
   settings:async f=>{
     busy(f,true);
-    try{await saveSettings({tuitionName:f.elements.tuition.value.trim(),teacherName:f.elements.teacher.value.trim(),teacherQual:f.elements.qual.value.trim(),phone:f.elements.phone.value.trim(),soonDays:+f.elements.soon.value||3});closeSheet();renderAll();toast('Settings saved');}
+    try{await saveSettings({tuitionName:f.elements.tuition.value.trim(),teacherName:f.elements.teacher.value.trim(),teacherQual:f.elements.qual.value.trim(),phone:f.elements.phone.value.trim(),soonDays:+f.elements.soon.value||3,dueInterval:Math.max(0,Math.min(365,Math.round(+f.elements.ivl.value)||0)),payInstructions:f.elements.payinfo.value.trim()});closeSheet();renderAll();toast('Settings saved');}
     catch(e){busy(f,false);}
   }
 };
